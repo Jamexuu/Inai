@@ -1,56 +1,95 @@
-# Welcome to your Expo app 👋
+# Inai 💊 - Maintenance Medication Tracker
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Inai** is a mobile app I am building for my mom to help her comfortably manage her daily maintenance medications. She has to take multiple pills throughout the day, and keeping track of exact times, dosages, and prescription refills can quickly become overwhelming. I designed Inai to give her a simple, accessible, and stress-free way to stay on top of her daily health routine.
 
-## Get started
+---
 
-1. Install dependencies
+## 💡 Why I'm Building This
 
-   ```bash
-   npm install
-   ```
+My mom has a lot of maintenance medicines to consume each day, and I noticed how easy it is to get confused about whether a dose was already taken, miss a scheduled time, or lose track of when a refill is due. 
 
-2. Start the app
+Most generic health apps are bloated, complex, and full of small text that can be frustrating for seniors. I built **Inai** with a direct focus on my mom's needs: a high-contrast, large-font, senior-friendly app where she can view her daily schedule clearly, log doses with a single tap, and receive gentle reminders so she never misses a pill.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## ✨ Features I'm Building
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- 📅 **Daily Medication Schedule**: Clear timeline grouped into **Morning**, **Afternoon**, **Evening**, and **Bedtime**.
+- 🔘 **One-Tap Dose Logging**: Easy buttons to mark medicines as **Taken**, **Skipped**, or **Pending** with instant visual feedback.
+- 🔔 **Timely Reminders**: Local notification alarms scheduled for each medication time slot.
+- 📦 **Pill Inventory & Refill Alerts**: Tracks remaining pill counts so I know exactly when to get her refills.
+- 👁️ **Senior-Friendly Accessibility**: Extra-large typography, high contrast colors, simple navigation, and clear visual indicators.
+- 📋 **Medication History**: A clean history log we can bring to her doctor appointments.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🛠️ Technical Stack & Architecture
 
-When you're ready, run:
+- **Framework**: [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/) & [React Native 0.86](https://reactnative.dev)
+- **Language**: [TypeScript](https://www.typescriptlang.org/) (Strict Mode)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction) (File-based routing)
+- **UI Components**: Custom accessible themed components (`ThemedText`, `ThemedView`)
+- **State & Storage**: React Hooks & Local Storage
 
-```bash
-npm run reset-project
+---
+
+## 📁 Project Structure
+
+```
+Inai/
+├── src/
+│   ├── app/                # Expo Router screens & layout
+│   │   ├── _layout.tsx     # Root tab layout navigation
+│   │   ├── index.tsx       # Main daily schedule & medicine tracker screen
+│   │   └── explore.tsx     # Medication list & settings screen
+│   ├── components/         # Reusable UI & accessible components
+│   │   ├── ui/             # Core UI elements (collapsible, icons, badges)
+│   │   ├── themed-text.tsx # Senior-friendly accessible text component
+│   │   └── themed-view.tsx # Theme-aware background views
+│   ├── constants/          # Theme colors, typography, spacing, and layout bounds
+│   └── hooks/              # Custom React hooks (useTheme, useColorScheme)
+├── assets/                 # App icons, splash screens, and images
+├── app.json                # Expo project configuration
+└── package.json            # Project dependencies & scripts
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-### Other setup steps
+## 🚀 Getting Started
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Prerequisites
 
-## Learn more
+Ensure you have [Node.js](https://nodejs.org/) installed (v18 or newer recommended).
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Install Dependencies
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npm install
+```
 
-## Join the community
+### 2. Start the Development Server
 
-Join our community of developers creating universal apps.
+```bash
+npx expo start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+In the interactive CLI output, choose how to run the app:
+- Press `a` to run on an **Android Emulator** or connected Android device
+- Press `i` to run on an **iOS Simulator** (macOS required)
+- Press `w` to run in the **Web Browser**
+- Scan the QR code with **Expo Go** (Android) or the Camera app (iOS)
+
+---
+
+## 🗺️ My Roadmap & Next Steps
+
+- [ ] **Phase 1: Medication Data Model & Local State** — Define data structures for pills, doses, daily schedules, and inventory counts.
+- [ ] **Phase 2: Local Notifications (`expo-notifications`)** — Configure recurring dose alarms for each time slot.
+- [ ] **Phase 3: Persistent Storage (`AsyncStorage` / SQLite)** — Save medicine logs locally across app launches.
+- [ ] **Phase 4: Doctor / Caregiver Summary** — Add a clean summary view to show her doctor during visits.
+
+---
+
+## 📄 License
+
+Private personal project built with love for my family.
