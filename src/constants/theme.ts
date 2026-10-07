@@ -1,6 +1,8 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Inai Design Tokens
+ * 
+ * Calm, warm, trustworthy, and accessible design tokens for Mom (~55 years old).
+ * Strictly NO GRADIENTS. High contrast, large comfortable touch targets.
  */
 
 import '@/global.css';
@@ -9,18 +11,64 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    // Canvas & Surfaces
+    background: '#FAF7F2',        // Warm ivory / linen
+    backgroundElement: '#F2ECE4', // Soft warm oatmeal surface
+    backgroundCard: '#FFFFFF',    // Clean card surface
+    backgroundSelected: '#E8DFD5',// Warm active state
+    border: '#E5DED4',            // Gentle border
+
+    // Text & Content (WCAG AAA contrast for reading ease)
+    text: '#282522',              // Deep warm charcoal
+    textSecondary: '#6B645D',     // Warm muted umber
+    textMuted: '#8E867E',         // Subtle text
+
+    // Accents & Brand (Motherly, calm, and grounded)
+    primary: '#3D5A50',           // Muted deep sage green
+    primaryLight: '#E9F0EC',      // Sage tint
+    primaryText: '#FFFFFF',       // Text on primary button
+    secondary: '#C46849',         // Gentle warm terracotta
+    secondaryLight: '#FAECE6',    // Terracotta tint
+    accent: '#C46849',
+    tint: '#3D5A50',
+
+    // Feedback & Status Badges
+    success: '#2E684D',           // Calm herbal green (Taken)
+    successLight: '#E6F2EB',
+    warning: '#A8631E',           // Warm amber / ochre (Skipped / Pending)
+    warningLight: '#FAF0E3',
+    error: '#A33B32',             // Gentle brick red (Missed)
+    errorLight: '#FAECEB',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    // Canvas & Surfaces
+    background: '#181715',        // Warm dark charcoal
+    backgroundElement: '#252320', // Soft dark surface
+    backgroundCard: '#2E2A26',    // Card surface
+    backgroundSelected: '#3E3833',
+    border: '#3F3A35',
+
+    // Text & Content
+    text: '#FAF7F2',              // Warm cream white
+    textSecondary: '#C5BFB7',     // Soft warm gray
+    textMuted: '#969088',
+
+    // Accents & Brand
+    primary: '#6FA18F',           // Soft sage green
+    primaryLight: '#23332C',
+    primaryText: '#101F18',
+    secondary: '#E08569',         // Warm terracotta
+    secondaryLight: '#3D251C',
+    accent: '#E08569',
+    tint: '#6FA18F',
+
+    // Feedback & Status Badges
+    success: '#62B88F',
+    successLight: '#1B3327',
+    warning: '#DCA15C',
+    warningLight: '#362816',
+    error: '#E87067',
+    errorLight: '#381C1A',
   },
 } as const;
 
@@ -28,13 +76,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -58,7 +102,21 @@ export const Spacing = {
   three: 16,
   four: 24,
   five: 32,
-  six: 64,
+  six: 48,
+  seven: 64,
+} as const;
+
+export const BorderRadius = {
+  small: 8,
+  medium: 12,
+  card: 16,
+  large: 20,
+  full: 9999,
+} as const;
+
+export const TouchTarget = {
+  minimum: 48,
+  comfort: 56,
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
