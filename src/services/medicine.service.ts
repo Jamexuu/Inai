@@ -83,6 +83,44 @@ export class MedicineService {
     };
   }
 
+  async addScheduleToMedicine(params: {
+    medicineId: string;
+    timeSlot: TimeSlot;
+    reminderTime: string;
+    daysOfWeek?: string;
+  }) {
+    const medicine = await this.medicineRepo.getById(params.medicineId);
+    if (!medicine) {
+      throw new Error(`Medicine not found: ${params.medicineId}`);
+    }
+
+    const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const schedule = await this.scheduleRepo.create({
+      id: scheduleId,
+      medicineId: params.medicineId,
+      timeSlot: params.timeSlot,
+      reminderTime: params.reminderTime,
+      daysOfWeek: params.daysOfWeek ?? 'ALL',
+      isActive: true,
+    });
+
+    try {
+      await this.notifier.scheduleMedicineReminder({
+        medicineId: medicine.id,
+        scheduleId: schedule.id,
+        medicineName: medicine.name,
+        dosage: medicine.dosage,
+        instructions: medicine.instructions,
+        timeSlot: schedule.timeSlot,
+        reminderTime: schedule.reminderTime,
+      });
+    } catch (err) {
+      console.warn('Failed to schedule reminder notification:', err);
+    }
+
+    return schedule;
+  }
+
   async updateMedicine(
     medicine: Medicine,
     newSchedules?: Array<{
