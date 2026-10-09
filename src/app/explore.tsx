@@ -6,14 +6,18 @@ import {
   View,
   Pressable,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
 import { MedicineWithSchedules, MedicineLog } from '@/types';
-import { SectionHeader, PrimaryButton, EmptyState } from '@/components/ui';
+import {
+  SectionHeader,
+  PrimaryButton,
+  EmptyState,
+  MedicinesSkeleton,
+} from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { formatTo12Hour } from '@/utils/date.utils';
 
@@ -27,6 +31,7 @@ export default function MedicinesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedMedicineForEdit, setSelectedMedicineForEdit] = useState<MedicineWithSchedules | null>(null);
 
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
@@ -73,9 +78,9 @@ export default function MedicinesScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-canvas">
       <ScrollView
-        contentContainerClassName="px-4 pb-6"
+        contentContainerClassName="px-4 pb-12"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
         {/* Screen Header */}
         <View className="pt-3 pb-3 gap-1">
@@ -88,21 +93,19 @@ export default function MedicinesScreen() {
         </View>
 
         {loading ? (
-          <View className="py-16 items-center gap-3">
-            <ActivityIndicator size="large" color="#3D5A50" />
-            <Text className="text-base font-medium text-umber">
-              Loading medicine cabinet...
-            </Text>
-          </View>
+          <MedicinesSkeleton />
         ) : (
           <>
             {/* Action Bar */}
-            <View className="my-2">
+            <View className="my-1">
               <PrimaryButton
                 label="Add New Medicine"
                 icon={<Ionicons name="add" size={20} color="#FFFFFF" />}
                 variant="primary"
-                onPress={() => setIsAddModalOpen(true)}
+                onPress={() => {
+                  setSelectedMedicineForEdit(null);
+                  setIsAddModalOpen(true);
+                }}
               />
             </View>
 
@@ -118,7 +121,10 @@ export default function MedicinesScreen() {
                 title="No medicines found"
                 description="Keep your medicines organized with exact reminder times."
                 actionLabel="Add Medicine"
-                onAction={() => setIsAddModalOpen(true)}
+                onAction={() => {
+                  setSelectedMedicineForEdit(null);
+                  setIsAddModalOpen(true);
+                }}
               />
             ) : (
               medicines.map((med) => (
@@ -126,7 +132,7 @@ export default function MedicinesScreen() {
                   key={med.id}
                   className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 gap-2">
                   <View className="flex-row justify-between items-start">
-                    <View className="gap-0.5 flex-1">
+                    <View className="gap-0.5 flex-1 pr-2">
                       <Text className="text-[22px] font-bold text-charcoal">
                         {med.name}
                       </Text>
@@ -134,14 +140,31 @@ export default function MedicinesScreen() {
                         {med.dosage}
                       </Text>
                     </View>
-                    <Pressable
-                      onPress={() => handleDeleteMedicine(med)}
-                      className="min-h-[48px] justify-center px-2 active:opacity-70"
-                      accessibilityLabel={`Delete ${med.name}`}>
-                      <Text className="text-[15px] font-semibold text-brick">
-                        Delete
-                      </Text>
-                    </Pressable>
+                    <View className="flex-row items-center gap-1">
+                      <Pressable
+                        onPress={() => {
+                          setSelectedMedicineForEdit(med);
+                          setIsAddModalOpen(true);
+                        }}
+                        className="min-h-[48px] px-2.5 flex-row items-center gap-1 active:opacity-70"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Edit ${med.name}`}>
+                        <Ionicons name="pencil-outline" size={16} color="#3D5A50" />
+                        <Text className="text-[15px] font-semibold text-sage">
+                          Edit
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => handleDeleteMedicine(med)}
+                        className="min-h-[48px] px-2 flex-row items-center gap-1 active:opacity-70"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Delete ${med.name}`}>
+                        <Ionicons name="trash-outline" size={16} color="#B84A39" />
+                        <Text className="text-[15px] font-semibold text-brick">
+                          Delete
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
 
                   {med.instructions ? (
@@ -225,12 +248,16 @@ export default function MedicinesScreen() {
         )}
       </ScrollView>
 
-      {/* Add Medicine Modal */}
+      {/* Add / Edit Medicine Modal */}
       <AddMedicineModal
         visible={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setSelectedMedicineForEdit(null);
+        }}
         onSuccess={() => triggerRefresh()}
         initialMode="new"
+        initialMedicine={selectedMedicineForEdit}
       />
     </SafeAreaView>
   );

@@ -4,7 +4,6 @@ import {
   Text,
   View,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +17,7 @@ import {
   SectionHeader,
   PrimaryButton,
   EmptyState,
+  HomeSkeleton,
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { formatTo12Hour } from '@/utils/date.utils';
@@ -121,12 +121,24 @@ export default function HomeScreen() {
   // Calculate progress
   const completedMeds = doses.filter((d) => d.status === 'taken').length;
   const totalMeds = doses.length;
-  const nextPendingDose = doses.find((d) => d.status === 'pending');
+  const pendingDoses = doses.filter((d) => d.status === 'pending');
+  const nextPendingDose = pendingDoses[0] || null;
+
+  // Group pending doses that share the same time slot as nextPendingDose
+  const sameSlotPendingDoses = nextPendingDose
+    ? pendingDoses.filter((d) => d.timeSlot === nextPendingDose.timeSlot)
+    : [];
+  const isMultiMedicineGroup = sameSlotPendingDoses.length > 1;
+
+  const handleTakeAllSameSlot = async (groupDoses: TodayMedicineDose[]) => {
+    await medicineService.markMultipleDosesTaken(groupDoses);
+    triggerRefresh();
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-canvas">
       <ScrollView
-        contentContainerClassName="px-4 pb-6"
+        contentContainerClassName="px-4 pb-12"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
         {/* Header Greeting */}
         <View className="pt-3 pb-2 gap-1">
@@ -139,25 +151,72 @@ export default function HomeScreen() {
         </View>
 
         {loading ? (
-          <View className="py-16 items-center gap-3">
-            <ActivityIndicator size="large" color="#3D5A50" />
-            <Text className="text-base font-medium text-umber">
-              Loading today&apos;s routine...
-            </Text>
-          </View>
+          <HomeSkeleton />
         ) : (
           <>
             {/* Next Important Action Hero Card */}
-            {nextPendingDose ? (
-              <View className="rounded-2xl border-2 border-sage bg-sage-tint p-4 mt-3 mb-2 gap-1.5">
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-row items-center gap-1">
+            {isMultiMedicineGroup ? (
+              <View className="rounded-2xl border-2 border-sage bg-sage-tint p-4 mt-3 mb-2 gap-2 overflow-hidden">
+                <View className="flex-row justify-between items-start gap-2">
+                  <View className="flex-row items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                    <Ionicons name="notifications" size={14} color="#3D5A50" />
+                    <Text className="text-[13px] font-bold tracking-wider text-sage uppercase">
+                      {nextPendingDose.timeSlot} Routine
+                    </Text>
+                    <View className="bg-sage/15 px-2 py-0.5 rounded-md">
+                      <Text className="text-[11px] font-bold text-sage">
+                        {sameSlotPendingDoses.length} Meds
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-row items-center gap-1 shrink-0 bg-sage/10 px-2 py-0.5 rounded-lg">
+                    <Ionicons name="time-outline" size={14} color="#3D5A50" />
+                    <Text className="text-sm font-bold text-sage">
+                      {formatTo12Hour(nextPendingDose.reminderTime)}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text className="text-xl font-bold text-charcoal">
+                  Time for your {nextPendingDose.timeSlot} medicines
+                </Text>
+
+                {/* List of medicines to take together */}
+                <View className="gap-2 my-1 bg-card/80 p-3 rounded-xl border border-subtle-border">
+                  {sameSlotPendingDoses.map((dose) => (
+                    <View key={dose.scheduleId} className="flex-row items-center justify-between gap-2">
+                      <View className="flex-row items-center gap-2 flex-1 min-w-0 pr-1">
+                        <View className="w-2.5 h-2.5 rounded-full bg-sage shrink-0" />
+                        <Text className="text-base font-bold text-charcoal flex-1" numberOfLines={2}>
+                          {dose.medicineName}
+                        </Text>
+                      </View>
+                      <Text className="text-sm font-bold text-terracotta shrink-0">
+                        {dose.dosage}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View className="mt-1">
+                  <PrimaryButton
+                    label={`Take All ${sameSlotPendingDoses.length} Medicines Now`}
+                    icon={<Ionicons name="checkmark-done" size={20} color="#FFFFFF" />}
+                    variant="primary"
+                    onPress={() => handleTakeAllSameSlot(sameSlotPendingDoses)}
+                  />
+                </View>
+              </View>
+            ) : nextPendingDose ? (
+              <View className="rounded-2xl border-2 border-sage bg-sage-tint p-4 mt-3 mb-2 gap-1.5 overflow-hidden">
+                <View className="flex-row justify-between items-center gap-2">
+                  <View className="flex-row items-center gap-1 flex-1 min-w-0">
                     <Ionicons name="notifications" size={14} color="#3D5A50" />
                     <Text className="text-[13px] font-bold tracking-wider text-sage">
                       NEXT DOSE
                     </Text>
                   </View>
-                  <View className="flex-row items-center gap-1">
+                  <View className="flex-row items-center gap-1 shrink-0">
                     <Ionicons name="time-outline" size={16} color="#3D5A50" />
                     <Text className="text-base font-bold text-sage">
                       {formatTo12Hour(nextPendingDose.reminderTime)}
