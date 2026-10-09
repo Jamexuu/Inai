@@ -32,11 +32,11 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
     <Pressable {...props} className="active:opacity-70">
       <View
         className={`py-2 px-4 rounded-xl ${
-          isFocused ? 'bg-sage' : 'bg-surface dark:bg-surface-dark'
+          isFocused ? 'bg-sage' : 'bg-surface'
         }`}>
         <Text
           className={`text-[15px] font-semibold ${
-            isFocused ? 'text-white' : 'text-umber dark:text-umber-dark'
+            isFocused ? 'text-white' : 'text-umber'
           }`}>
           {children}
         </Text>
@@ -48,10 +48,10 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 export function CustomTabList(props: TabListProps) {
   return (
     <View className="absolute bottom-0 w-full p-3 justify-center items-center flex-row">
-      <View className="py-2 px-4 rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark flex-row items-center justify-between flex-grow max-w-[500px] shadow-sm">
+      <View className="py-2 px-4 rounded-2xl border-[1.5px] border-subtle-border bg-card flex-row items-center justify-between flex-grow max-w-[500px] shadow-sm">
         <View className="flex-row items-center gap-1.5">
           <MaterialCommunityIcons name="pill" size={20} color="#3D5A50" />
-          <Text className="text-lg font-bold tracking-wide text-charcoal dark:text-charcoal-dark">
+          <Text className="text-lg font-bold tracking-wide text-charcoal">
             Inai
           </Text>
         </View>

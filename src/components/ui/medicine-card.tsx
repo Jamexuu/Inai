@@ -21,15 +21,15 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   const isTaken = dose.status === 'taken';
 
   return (
-    <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 mb-3 shadow-sm">
+    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 shadow-sm">
       {/* Header with Time and Status */}
       <View className="flex-row justify-between items-center mb-2">
         <View className="flex-row items-center gap-1.5">
           <Ionicons name="time-outline" size={18} color="#3D5A50" />
-          <Text className="text-lg font-bold text-sage dark:text-sage-dark">
+          <Text className="text-lg font-bold text-sage">
             {dose.reminderTime}
           </Text>
-          <Text className="text-sm font-medium text-umber dark:text-umber-dark">
+          <Text className="text-sm font-medium text-umber">
             ({dose.timeSlot.charAt(0).toUpperCase() + dose.timeSlot.slice(1)})
           </Text>
         </View>
@@ -38,16 +38,16 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
 
       {/* Medicine Info */}
       <View className="mb-3 gap-1">
-        <Text className="text-[22px] font-bold tracking-wide text-charcoal dark:text-charcoal-dark">
+        <Text className="text-[22px] font-bold tracking-wide text-charcoal">
           {dose.medicineName}
         </Text>
-        <Text className="text-[17px] font-semibold text-terracotta dark:text-terracotta-dark">
+        <Text className="text-[17px] font-semibold text-terracotta">
           {dose.dosage}
         </Text>
         {dose.instructions ? (
           <View className="flex-row items-center gap-1.5 mt-0.5">
             <Ionicons name="information-circle-outline" size={16} color="#6B645D" />
-            <Text className="text-[15px] font-medium text-umber dark:text-umber-dark flex-1">
+            <Text className="text-[15px] font-medium text-umber flex-1">
               {dose.instructions}
             </Text>
           </View>
@@ -73,14 +73,14 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
           />
         </View>
       ) : (
-        <View className="flex-row items-center justify-between pt-2 border-t border-subtle-border dark:border-subtle-border-dark">
+        <View className="flex-row items-center justify-between pt-2 border-t border-subtle-border">
           <View className="flex-row items-center gap-1.5 flex-1">
             <Ionicons
               name={isTaken ? 'checkmark-circle' : 'close-circle-outline'}
               size={18}
               color={isTaken ? '#2E684D' : '#6B645D'}
             />
-            <Text className="text-[15px] font-medium text-umber dark:text-umber-dark">
+            <Text className="text-[15px] font-medium text-umber">
               {isTaken
                 ? `Completed for today${dose.loggedAt ? ` (${new Date(dose.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}`
                 : 'Skipped for today'}

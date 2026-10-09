@@ -28,18 +28,18 @@ export const MealCard: React.FC<MealCardProps> = ({ meal, onMarkDone, onMarkSkip
   };
 
   return (
-    <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-3.5 mb-2">
+    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-3.5 mb-2">
       <View className="flex-row items-center gap-3">
-        <View className="w-11 h-11 rounded-xl border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark items-center justify-center">
+        <View className="w-11 h-11 rounded-xl border border-subtle-border bg-surface items-center justify-center">
           {renderMealIcon()}
         </View>
         <View className="flex-1">
-          <Text className="text-lg font-bold text-charcoal dark:text-charcoal-dark">
+          <Text className="text-lg font-bold text-charcoal">
             {meal.label}
           </Text>
           <View className="flex-row items-center gap-1 mt-0.5">
             <Ionicons name="time-outline" size={14} color="#6B645D" />
-            <Text className="text-sm font-medium text-umber dark:text-umber-dark">
+            <Text className="text-sm font-medium text-umber">
               {meal.targetTime}
             </Text>
           </View>
@@ -60,7 +60,7 @@ export const MealCard: React.FC<MealCardProps> = ({ meal, onMarkDone, onMarkSkip
           <View className="flex-row items-center justify-between pt-1">
             <View className="flex-row items-center gap-1.5">
               <Ionicons name="checkmark-circle" size={18} color="#2E684D" />
-              <Text className="text-[15px] font-semibold text-herbal dark:text-herbal-dark">
+              <Text className="text-[15px] font-semibold text-herbal">
                 Meal completed
               </Text>
             </View>

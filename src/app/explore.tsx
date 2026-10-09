@@ -72,16 +72,16 @@ export default function MedicinesScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas dark:bg-canvas-dark">
+    <SafeAreaView className="flex-1 bg-canvas">
       <ScrollView
         contentContainerClassName="px-4 pb-6"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
         {/* Screen Header */}
         <View className="pt-3 pb-3 gap-1">
-          <Text className="text-[28px] font-bold text-charcoal dark:text-charcoal-dark">
+          <Text className="text-[28px] font-bold text-charcoal">
             My Medicines
           </Text>
-          <Text className="text-base font-normal text-umber dark:text-umber-dark">
+          <Text className="text-base font-normal text-umber">
             All daily maintenance prescriptions and intake history.
           </Text>
         </View>
@@ -89,7 +89,7 @@ export default function MedicinesScreen() {
         {loading ? (
           <View className="py-16 items-center gap-3">
             <ActivityIndicator size="large" color="#3D5A50" />
-            <Text className="text-base font-medium text-umber dark:text-umber-dark">
+            <Text className="text-base font-medium text-umber">
               Loading medicine cabinet...
             </Text>
           </View>
@@ -123,13 +123,13 @@ export default function MedicinesScreen() {
               medicines.map((med) => (
                 <View
                   key={med.id}
-                  className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 mb-3 gap-2">
+                  className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 gap-2">
                   <View className="flex-row justify-between items-start">
                     <View className="gap-0.5 flex-1">
-                      <Text className="text-[22px] font-bold text-charcoal dark:text-charcoal-dark">
+                      <Text className="text-[22px] font-bold text-charcoal">
                         {med.name}
                       </Text>
-                      <Text className="text-[17px] font-semibold text-terracotta dark:text-terracotta-dark">
+                      <Text className="text-[17px] font-semibold text-terracotta">
                         {med.dosage}
                       </Text>
                     </View>
@@ -137,7 +137,7 @@ export default function MedicinesScreen() {
                       onPress={() => handleDeleteMedicine(med)}
                       className="min-h-[48px] justify-center px-2 active:opacity-70"
                       accessibilityLabel={`Delete ${med.name}`}>
-                      <Text className="text-[15px] font-semibold text-brick dark:text-brick-dark">
+                      <Text className="text-[15px] font-semibold text-brick">
                         Delete
                       </Text>
                     </Pressable>
@@ -146,29 +146,29 @@ export default function MedicinesScreen() {
                   {med.instructions ? (
                     <View className="flex-row items-center gap-1.5">
                       <Ionicons name="information-circle-outline" size={16} color="#6B645D" />
-                      <Text className="text-[15px] font-medium text-umber dark:text-umber-dark flex-1">
+                      <Text className="text-[15px] font-medium text-umber flex-1">
                         {med.instructions}
                       </Text>
                     </View>
                   ) : null}
 
                   {med.notes ? (
-                    <Text className="text-sm italic text-muted-gray dark:text-muted-gray-dark">
+                    <Text className="text-sm italic text-muted-gray">
                       Note: {med.notes}
                     </Text>
                   ) : null}
 
                   {/* Scheduled Times */}
                   <View className="flex-row flex-wrap items-center gap-2 mt-1">
-                    <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
+                    <Text className="text-sm font-semibold text-umber">
                       Times:
                     </Text>
                     {med.schedules.map((s) => (
                       <View
                         key={s.id}
-                        className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark">
+                        className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg border border-subtle-border bg-surface">
                         <Ionicons name="time-outline" size={13} color="#3D5A50" />
-                        <Text className="text-[13px] font-semibold text-sage dark:text-sage-dark">
+                        <Text className="text-[13px] font-semibold text-sage">
                           {s.reminderTime} ({s.timeSlot})
                         </Text>
                       </View>
@@ -185,8 +185,8 @@ export default function MedicinesScreen() {
             />
 
             {logs.length === 0 ? (
-              <View className="p-4 rounded-xl items-center bg-surface dark:bg-surface-dark">
-                <Text className="text-[15px] text-center leading-[22px] text-umber dark:text-umber-dark">
+              <View className="p-4 rounded-xl items-center bg-surface">
+                <Text className="text-[15px] text-center leading-[22px] text-umber">
                   No doses logged yet. As you mark medicines taken on the Home screen, they will appear here.
                 </Text>
               </View>
@@ -200,7 +200,7 @@ export default function MedicinesScreen() {
                 return (
                   <View
                     key={log.id}
-                    className="flex-row justify-between items-center p-3 rounded-xl border border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark mb-2">
+                    className="flex-row justify-between items-center p-3 rounded-xl border border-subtle-border bg-card mb-2">
                     <View className="flex-row items-center gap-3">
                       <Ionicons
                         name={isTaken ? 'checkmark-circle' : 'close-circle-outline'}
@@ -208,10 +208,10 @@ export default function MedicinesScreen() {
                         color={isTaken ? '#2E684D' : '#A8631E'}
                       />
                       <View>
-                        <Text className="text-base font-semibold capitalize text-charcoal dark:text-charcoal-dark">
+                        <Text className="text-base font-semibold capitalize text-charcoal">
                           Dose marked as {log.status}
                         </Text>
-                        <Text className="text-sm text-umber dark:text-umber-dark">
+                        <Text className="text-sm text-umber">
                           {dateStr} at {timeStr}
                         </Text>
                       </View>

@@ -21,31 +21,31 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   className = '',
 }) => {
   const getVariantButtonClass = () => {
-    if (disabled) return 'bg-surface dark:bg-surface-dark opacity-60';
+    if (disabled) return 'bg-surface opacity-60';
     switch (variant) {
       case 'primary':
         return 'bg-sage active:bg-[#2E443C]';
       case 'secondary':
         return 'bg-terracotta active:bg-[#A85338]';
       case 'outline':
-        return 'bg-card dark:bg-card-dark border-[1.5px] border-subtle-border dark:border-subtle-border-dark active:bg-surface dark:active:bg-surface-dark';
+        return 'bg-card border-[1.5px] border-subtle-border active:bg-surface';
       case 'ghost':
-        return 'bg-transparent active:bg-surface dark:active:bg-surface-dark';
+        return 'bg-transparent active:bg-surface';
       default:
         return 'bg-sage active:bg-[#2E443C]';
     }
   };
 
   const getVariantTextClass = () => {
-    if (disabled) return 'text-muted-gray dark:text-muted-gray-dark';
+    if (disabled) return 'text-muted-gray';
     switch (variant) {
       case 'primary':
       case 'secondary':
         return 'text-white';
       case 'outline':
-        return 'text-sage dark:text-sage-dark';
+        return 'text-sage';
       case 'ghost':
-        return 'text-umber dark:text-umber-dark';
+        return 'text-umber';
       default:
         return 'text-white';
     }

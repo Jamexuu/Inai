@@ -92,11 +92,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <View className="flex-1 bg-black/60 justify-end">
-        <View className="rounded-t-3xl border-t-[1.5px] border-x-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark max-h-[90%]">
+        <View className="rounded-t-3xl border-t-[1.5px] border-x-[1.5px] border-subtle-border bg-card max-h-[90%]">
           <ScrollView contentContainerClassName="p-4 gap-3">
             {/* Header */}
             <View className="flex-row justify-between items-center mb-1">
-              <Text className="text-[22px] font-bold text-charcoal dark:text-charcoal-dark">
+              <Text className="text-[22px] font-bold text-charcoal">
                 Add New Medicine
               </Text>
               <Pressable onPress={onClose} className="p-2 active:opacity-70" accessibilityLabel="Close modal">
@@ -105,18 +105,18 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
             </View>
 
             {error ? (
-              <View className="p-3 rounded-xl border border-brick bg-brick-tint dark:bg-brick-dark-tint dark:border-brick-dark">
-                <Text className="text-sm font-semibold text-brick dark:text-brick-dark">{error}</Text>
+              <View className="p-3 rounded-xl border border-brick bg-brick-tint">
+                <Text className="text-sm font-semibold text-brick">{error}</Text>
               </View>
             ) : null}
 
             {/* Medicine Name */}
             <View className="gap-1.5">
-              <Text className="text-base font-semibold text-charcoal dark:text-charcoal-dark">
+              <Text className="text-base font-semibold text-charcoal">
                 Medicine Name
               </Text>
               <TextInput
-                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-4 text-base text-charcoal dark:text-charcoal-dark"
+                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-4 text-base text-charcoal"
                 placeholder="e.g. Paracetamol, Losartan"
                 placeholderTextColor="#8E867E"
                 value={name}
@@ -126,11 +126,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
             {/* Dosage */}
             <View className="gap-1.5">
-              <Text className="text-base font-semibold text-charcoal dark:text-charcoal-dark">
+              <Text className="text-base font-semibold text-charcoal">
                 Dosage
               </Text>
               <TextInput
-                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-4 text-base text-charcoal dark:text-charcoal-dark"
+                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-4 text-base text-charcoal"
                 placeholder="e.g. 500 mg, 1 tablet, 2 capsules"
                 placeholderTextColor="#8E867E"
                 value={dosage}
@@ -140,7 +140,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
             {/* When to take */}
             <View className="gap-1.5">
-              <Text className="text-base font-semibold text-charcoal dark:text-charcoal-dark">
+              <Text className="text-base font-semibold text-charcoal">
                 When to take
               </Text>
               <View className="flex-row flex-wrap gap-2">
@@ -154,11 +154,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                       className={`flex-1 min-w-[45%] min-h-[48px] rounded-xl border-[1.5px] items-center justify-center ${
                         isSelected
                           ? 'bg-sage border-sage active:bg-[#2E443C]'
-                          : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
+                          : 'bg-surface border-subtle-border active:bg-card-selected'
                       }`}>
                       <Text
                         className={`text-[15px] font-semibold ${
-                          isSelected ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
+                          isSelected ? 'text-white' : 'text-charcoal'
                         }`}>
                         {slotLabel}
                       </Text>
@@ -170,11 +170,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
             {/* Reminder Time */}
             <View className="gap-1.5">
-              <Text className="text-base font-semibold text-charcoal dark:text-charcoal-dark">
+              <Text className="text-base font-semibold text-charcoal">
                 Reminder Time (HH:mm)
               </Text>
               <TextInput
-                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-4 text-base text-charcoal dark:text-charcoal-dark"
+                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-4 text-base text-charcoal"
                 placeholder="08:00"
                 placeholderTextColor="#8E867E"
                 value={reminderTime}
@@ -184,11 +184,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
             {/* Instructions */}
             <View className="gap-1.5">
-              <Text className="text-base font-semibold text-charcoal dark:text-charcoal-dark">
+              <Text className="text-base font-semibold text-charcoal">
                 Instructions / Notes (Optional)
               </Text>
               <TextInput
-                className="min-h-[80px] pt-3 rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-4 text-base text-charcoal dark:text-charcoal-dark"
+                className="min-h-[80px] pt-3 rounded-xl border-[1.5px] border-subtle-border bg-surface px-4 text-base text-charcoal"
                 placeholder="e.g. Take with warm water after breakfast"
                 placeholderTextColor="#8E867E"
                 value={instructions}

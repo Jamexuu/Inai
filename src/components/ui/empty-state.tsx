@@ -19,14 +19,14 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
 }) => {
   return (
-    <View className="rounded-2xl border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark p-6 items-center justify-center my-4 gap-2">
-      <View className="w-[68px] h-[68px] rounded-full border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark items-center justify-center mb-1.5">
+    <View className="rounded-2xl border border-subtle-border bg-surface p-6 items-center justify-center my-4 gap-2">
+      <View className="w-[68px] h-[68px] rounded-full border-[1.5px] border-subtle-border bg-card items-center justify-center mb-1.5">
         <MaterialCommunityIcons name={iconName} size={36} color="#3D5A50" />
       </View>
-      <Text className="text-xl font-bold text-center text-charcoal dark:text-charcoal-dark">
+      <Text className="text-xl font-bold text-center text-charcoal">
         {title}
       </Text>
-      <Text className="text-base font-normal text-center leading-[22px] mb-2 text-umber dark:text-umber-dark">
+      <Text className="text-base font-normal text-center leading-[22px] mb-2 text-umber">
         {description}
       </Text>
       {actionLabel && onAction ? (

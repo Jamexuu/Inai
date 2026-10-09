@@ -123,16 +123,16 @@ export default function HomeScreen() {
   const nextPendingDose = doses.find((d) => d.status === 'pending');
 
   return (
-    <SafeAreaView className="flex-1 bg-canvas dark:bg-canvas-dark">
+    <SafeAreaView className="flex-1 bg-canvas">
       <ScrollView
         contentContainerClassName="px-4 pb-6"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
         {/* Header Greeting */}
         <View className="pt-3 pb-2 gap-1">
-          <Text className="text-[28px] font-bold tracking-wide text-charcoal dark:text-charcoal-dark">
+          <Text className="text-[28px] font-bold tracking-wide text-charcoal">
             {greeting}
           </Text>
-          <Text className="text-base font-medium text-umber dark:text-umber-dark">
+          <Text className="text-base font-medium text-umber">
             {formattedDate}
           </Text>
         </View>
@@ -140,7 +140,7 @@ export default function HomeScreen() {
         {loading ? (
           <View className="py-16 items-center gap-3">
             <ActivityIndicator size="large" color="#3D5A50" />
-            <Text className="text-base font-medium text-umber dark:text-umber-dark">
+            <Text className="text-base font-medium text-umber">
               Loading today&apos;s routine...
             </Text>
           </View>
@@ -148,31 +148,31 @@ export default function HomeScreen() {
           <>
             {/* Next Important Action Hero Card */}
             {nextPendingDose ? (
-              <View className="rounded-2xl border-2 border-sage bg-sage-tint dark:bg-sage-dark-tint p-4 mt-3 mb-2 gap-1.5">
+              <View className="rounded-2xl border-2 border-sage bg-sage-tint p-4 mt-3 mb-2 gap-1.5">
                 <View className="flex-row justify-between items-center">
                   <View className="flex-row items-center gap-1">
                     <Ionicons name="notifications" size={14} color="#3D5A50" />
-                    <Text className="text-[13px] font-bold tracking-wider text-sage dark:text-sage-dark">
+                    <Text className="text-[13px] font-bold tracking-wider text-sage">
                       NEXT MEDICINE TO TAKE
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-1">
                     <Ionicons name="time-outline" size={16} color="#3D5A50" />
-                    <Text className="text-base font-bold text-sage dark:text-sage-dark">
+                    <Text className="text-base font-bold text-sage">
                       {nextPendingDose.reminderTime}
                     </Text>
                   </View>
                 </View>
-                <Text className="text-2xl font-bold text-charcoal dark:text-charcoal-dark">
+                <Text className="text-2xl font-bold text-charcoal">
                   {nextPendingDose.medicineName}
                 </Text>
-                <Text className="text-lg font-semibold text-terracotta dark:text-terracotta-dark">
+                <Text className="text-lg font-semibold text-terracotta">
                   {nextPendingDose.dosage}
                 </Text>
                 {nextPendingDose.instructions ? (
                   <View className="flex-row items-center gap-1.5 mt-0.5">
                     <Ionicons name="information-circle-outline" size={16} color="#6B645D" />
-                    <Text className="text-[15px] font-medium text-umber dark:text-umber-dark flex-1">
+                    <Text className="text-[15px] font-medium text-umber flex-1">
                       {nextPendingDose.instructions}
                     </Text>
                   </View>
@@ -187,13 +187,13 @@ export default function HomeScreen() {
                 </View>
               </View>
             ) : totalMeds > 0 ? (
-              <View className="flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-herbal bg-herbal-tint dark:bg-herbal-dark-tint p-4 mt-3 mb-2">
+              <View className="flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-herbal bg-herbal-tint p-4 mt-3 mb-2">
                 <Ionicons name="checkmark-done-circle" size={36} color="#2E684D" />
                 <View className="flex-1 gap-0.5">
-                  <Text className="text-lg font-bold text-herbal dark:text-herbal-dark">
+                  <Text className="text-lg font-bold text-herbal">
                     All medicines completed!
                   </Text>
-                  <Text className="text-sm font-medium leading-5 text-umber dark:text-umber-dark">
+                  <Text className="text-sm font-medium leading-5 text-umber">
                     Wonderful job today, Mom. Rest easy and stay hydrated.
                   </Text>
                 </View>
