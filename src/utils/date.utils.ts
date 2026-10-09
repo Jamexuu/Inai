@@ -115,3 +115,26 @@ export function formatFriendlyDate(date: Date = new Date()): string {
     day: 'numeric',
   });
 }
+
+/**
+ * Parses any 12-hour or 24-hour time string into decomposed components:
+ * hour (1-12), minute (0-59), and period ("AM" | "PM").
+ */
+export function parse12HourParts(timeStr?: string | null): {
+  hour: number;
+  minute: number;
+  period: 'AM' | 'PM';
+} {
+  const formatted = formatTo12Hour(timeStr) || '8:00 AM';
+  const match = formatted.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (match) {
+    return {
+      hour: parseInt(match[1], 10),
+      minute: parseInt(match[2], 10),
+      period: match[3].toUpperCase() === 'PM' ? 'PM' : 'AM',
+    };
+  }
+  return { hour: 8, minute: 0, period: 'AM' };
+}
+
+
