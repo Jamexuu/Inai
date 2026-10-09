@@ -20,6 +20,7 @@ import {
   EmptyState,
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
+import { formatTo12Hour } from '@/utils/date.utils';
 
 export default function HomeScreen() {
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
@@ -153,13 +154,13 @@ export default function HomeScreen() {
                   <View className="flex-row items-center gap-1">
                     <Ionicons name="notifications" size={14} color="#3D5A50" />
                     <Text className="text-[13px] font-bold tracking-wider text-sage">
-                      NEXT MEDICINE TO TAKE
+                      NEXT DOSE
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-1">
                     <Ionicons name="time-outline" size={16} color="#3D5A50" />
                     <Text className="text-base font-bold text-sage">
-                      {nextPendingDose.reminderTime}
+                      {formatTo12Hour(nextPendingDose.reminderTime)}
                     </Text>
                   </View>
                 </View>
@@ -257,6 +258,7 @@ export default function HomeScreen() {
         visible={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => triggerRefresh()}
+        initialMode="existing"
       />
     </SafeAreaView>
   );

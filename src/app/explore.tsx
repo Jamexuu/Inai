@@ -15,6 +15,7 @@ import { medicineService } from '@/services/medicine.service';
 import { MedicineWithSchedules, MedicineLog } from '@/types';
 import { SectionHeader, PrimaryButton, EmptyState } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
+import { formatTo12Hour } from '@/utils/date.utils';
 
 export default function MedicinesScreen() {
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
@@ -169,7 +170,7 @@ export default function MedicinesScreen() {
                         className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg border border-subtle-border bg-surface">
                         <Ionicons name="time-outline" size={13} color="#3D5A50" />
                         <Text className="text-[13px] font-semibold text-sage">
-                          {s.reminderTime} ({s.timeSlot})
+                          {formatTo12Hour(s.reminderTime)} ({s.timeSlot.charAt(0).toUpperCase() + s.timeSlot.slice(1)})
                         </Text>
                       </View>
                     ))}
@@ -193,7 +194,7 @@ export default function MedicinesScreen() {
             ) : (
               logs.slice(0, 10).map((log) => {
                 const dateObj = new Date(log.loggedAt);
-                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const timeStr = formatTo12Hour(dateObj);
                 const dateStr = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
                 const isTaken = log.status === 'taken';
 
@@ -229,6 +230,7 @@ export default function MedicinesScreen() {
         visible={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => triggerRefresh()}
+        initialMode="new"
       />
     </SafeAreaView>
   );

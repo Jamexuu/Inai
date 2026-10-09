@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TodayMedicineDose } from '@/types';
+import { formatTo12Hour } from '@/utils/date.utils';
 import { StatusBadge } from './status-badge';
 import { PrimaryButton } from './primary-button';
 
@@ -27,7 +28,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         <View className="flex-row items-center gap-1.5">
           <Ionicons name="time-outline" size={18} color="#3D5A50" />
           <Text className="text-lg font-bold text-sage">
-            {dose.reminderTime}
+            {formatTo12Hour(dose.reminderTime)}
           </Text>
           <Text className="text-sm font-medium text-umber">
             ({dose.timeSlot.charAt(0).toUpperCase() + dose.timeSlot.slice(1)})
@@ -82,7 +83,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             />
             <Text className="text-[15px] font-medium text-umber">
               {isTaken
-                ? `Completed for today${dose.loggedAt ? ` (${new Date(dose.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}`
+                ? `Completed for today${dose.loggedAt ? ` (${formatTo12Hour(dose.loggedAt)})` : ''}`
                 : 'Skipped for today'}
             </Text>
           </View>

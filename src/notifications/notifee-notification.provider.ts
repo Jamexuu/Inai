@@ -6,6 +6,7 @@ import notifee, {
 } from '@notifee/react-native';
 import { Platform } from 'react-native';
 import { INotificationProvider, MedicineReminderPayload } from './notification-provider.interface';
+import { parseTo24Hour } from '@/utils/date.utils';
 
 const CHANNEL_ID = 'inai_medicine_reminders';
 const CHANNEL_NAME = 'Medicine Reminders';
@@ -43,7 +44,8 @@ export class NotifeeNotificationProvider implements INotificationProvider {
   async scheduleMedicineReminder(reminder: MedicineReminderPayload): Promise<string> {
     await this.ensureChannel();
 
-    const [hourStr, minuteStr] = reminder.reminderTime.split(':');
+    const canonicalTime = parseTo24Hour(reminder.reminderTime);
+    const [hourStr, minuteStr] = canonicalTime.split(':');
     const hour = parseInt(hourStr, 10);
     const minute = parseInt(minuteStr, 10);
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TodayMealDose } from '@/types';
+import { formatTo12Hour } from '@/utils/date.utils';
 import { StatusBadge } from './status-badge';
 import { PrimaryButton } from './primary-button';
 
@@ -40,7 +41,7 @@ export const MealCard: React.FC<MealCardProps> = ({ meal, onMarkDone, onMarkSkip
           <View className="flex-row items-center gap-1 mt-0.5">
             <Ionicons name="time-outline" size={14} color="#6B645D" />
             <Text className="text-sm font-medium text-umber">
-              {meal.targetTime}
+              {formatTo12Hour(meal.targetTime)}
             </Text>
           </View>
         </View>
