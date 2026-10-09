@@ -119,5 +119,5 @@ export const TouchTarget = {
   comfort: 56,
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+export const BottomTabInset = Platform.select({ ios: 56, android: 60 }) ?? 60;
 export const MaxContentWidth = 800;
