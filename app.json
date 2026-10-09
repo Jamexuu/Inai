@@ -6,7 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "inai",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#FAF7F2",
+      "translucent": false
+    },
     "ios": {
       "icon": "./assets/expo.icon"
     },

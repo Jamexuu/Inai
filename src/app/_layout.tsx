@@ -1,8 +1,8 @@
 import '../global.css';
 import React, { useEffect, useState } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DefaultTheme, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
 
 import AppTabs from '@/components/app-tabs';
 import { initializeDatabase } from '@/database/database';
@@ -12,7 +12,6 @@ import { useAppStore } from '@/store/app.store';
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const setDatabaseReady = useAppStore((state) => state.setDatabaseReady);
   const [ready, setReady] = useState(false);
 
@@ -34,7 +33,8 @@ export default function TabLayout() {
   }, [setDatabaseReady]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
+      <StatusBar style="dark" backgroundColor="#FAF7F2" translucent={false} />
       {ready ? <AppTabs /> : null}
     </ThemeProvider>
   );
