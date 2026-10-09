@@ -194,10 +194,51 @@ export class MedicineService {
     });
   }
 
+  async markMultipleDosesTaken(doses: TodayMedicineDose[]): Promise<void> {
+    const todayPrefix = new Date().toISOString().substring(0, 10);
+    for (const dose of doses) {
+      const scheduledTime = `${todayPrefix} ${dose.reminderTime}`;
+      const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await this.logRepo.logDose({
+        id: logId,
+        medicineId: dose.medicineId,
+        scheduleId: dose.scheduleId,
+        scheduledTime,
+        status: 'taken',
+      });
+    }
+  }
+
+  async syncAllMedicineReminders(): Promise<void> {
+    const medicines = await this.getAllMedicines();
+    for (const med of medicines) {
+      if (med.isActive && med.schedules) {
+        for (const schedule of med.schedules) {
+          if (schedule.isActive) {
+            try {
+              await this.notifier.scheduleMedicineReminder({
+                medicineId: med.id,
+                scheduleId: schedule.id,
+                medicineName: med.name,
+                dosage: med.dosage,
+                instructions: med.instructions,
+                timeSlot: schedule.timeSlot,
+                reminderTime: schedule.reminderTime,
+              });
+            } catch (err) {
+              console.warn('Failed to sync reminder for', med.name, err);
+            }
+          }
+        }
+      }
+    }
+  }
+
   async getRecentLogs(limit = 50) {
     return this.logRepo.getRecentLogs(limit);
   }
 }
 
 export const medicineService = new MedicineService();
+
 
