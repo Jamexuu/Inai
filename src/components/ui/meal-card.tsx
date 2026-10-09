@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, Pressable } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TodayMealDose } from '@/types';
 import { formatTo12Hour } from '@/utils/date.utils';
@@ -10,9 +10,15 @@ interface MealCardProps {
   meal: TodayMealDose;
   onMarkDone: (meal: TodayMealDose) => void;
   onMarkSkipped: (meal: TodayMealDose) => void;
+  onEdit?: (meal: TodayMealDose) => void;
 }
 
-export const MealCard: React.FC<MealCardProps> = ({ meal, onMarkDone, onMarkSkipped }) => {
+export const MealCard: React.FC<MealCardProps> = ({
+  meal,
+  onMarkDone,
+  onMarkSkipped,
+  onEdit,
+}) => {
   const isCompleted = meal.status === 'completed';
 
   const renderMealIcon = () => {
@@ -45,7 +51,18 @@ export const MealCard: React.FC<MealCardProps> = ({ meal, onMarkDone, onMarkSkip
             </Text>
           </View>
         </View>
-        <StatusBadge status={meal.status} type="meal" />
+        <View className="flex-row items-center gap-1.5">
+          <StatusBadge status={meal.status} type="meal" />
+          {onEdit ? (
+            <Pressable
+              onPress={() => onEdit(meal)}
+              className="p-1.5 rounded-lg active:bg-surface"
+              accessibilityRole="button"
+              accessibilityLabel={`Edit ${meal.label}`}>
+              <Ionicons name="pencil-outline" size={18} color="#6B645D" />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       <View className="mt-2">

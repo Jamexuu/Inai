@@ -4,7 +4,9 @@ import { Meal, MealLog, MealStatus, MealType, TodayMealDose } from '@/types';
 export interface IMealRepository {
   getAll(): Promise<Meal[]>;
   getById(id: string): Promise<Meal | null>;
+  create(meal: Omit<Meal, 'createdAt' | 'updatedAt'>): Promise<Meal>;
   update(meal: Meal): Promise<Meal>;
+  delete(id: string): Promise<void>;
 }
 
 export class MealRepository implements IMealRepository {
@@ -60,18 +62,50 @@ export class MealRepository implements IMealRepository {
     };
   }
 
+  async create(meal: Omit<Meal, 'createdAt' | 'updatedAt'>): Promise<Meal> {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+
+    await db.runAsync(
+      `INSERT INTO meals (id, meal_type, target_time, label, notes, is_active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+      [
+        meal.id,
+        meal.mealType,
+        meal.targetTime,
+        meal.label,
+        meal.notes ?? null,
+        meal.isActive ? 1 : 0,
+        now,
+        now,
+      ]
+    );
+
+    return {
+      ...meal,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
   async update(meal: Meal): Promise<Meal> {
     const db = getDatabase();
     const now = new Date().toISOString();
 
     await db.runAsync(
       `UPDATE meals 
-       SET target_time = ?, label = ?, notes = ?, is_active = ?, updated_at = ?
+       SET meal_type = ?, target_time = ?, label = ?, notes = ?, is_active = ?, updated_at = ?
        WHERE id = ?;`,
-      [meal.targetTime, meal.label, meal.notes ?? null, meal.isActive ? 1 : 0, now, meal.id]
+      [meal.mealType, meal.targetTime, meal.label, meal.notes ?? null, meal.isActive ? 1 : 0, now, meal.id]
     );
 
     return { ...meal, updatedAt: now };
+  }
+
+  async delete(id: string): Promise<void> {
+    const db = getDatabase();
+    // Soft delete so historical logs still link
+    await db.runAsync('UPDATE meals SET is_active = 0 WHERE id = ?;', [id]);
   }
 }
 
