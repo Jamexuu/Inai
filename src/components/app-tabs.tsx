@@ -10,12 +10,9 @@ export default function AppTabs() {
   const insets = useSafeAreaInsets();
 
   const isAndroid = Platform.OS === 'android';
-  // Generous clearance above Android 3-button navigation bar (or iOS home indicator)
-  // so labels are well clear of ≡, ○, ⮌
-  const systemNavClearance = Math.max(insets.bottom, isAndroid ? 44 : 20);
-  const bottomPadding = systemNavClearance + (isAndroid ? 14 : 6);
-  const tabContentHeight = 56;
-  const tabHeight = tabContentHeight + bottomPadding;
+  const bottomPadding = insets.bottom > 0 ? insets.bottom + 12 : (isAndroid ? 16 : 12);
+  const paddingTop = 6;
+  const tabHeight = 48 + paddingTop + bottomPadding;
 
   return (
     <Tabs
@@ -29,20 +26,17 @@ export default function AppTabs() {
           borderColor: 'transparent',
           elevation: 0,
           shadowOpacity: 0,
-          height: tabHeight,
+          paddingTop,
           paddingBottom: bottomPadding,
-          paddingTop: 8,
+          height: tabHeight,
         },
         tabBarItemStyle: {
-          height: tabContentHeight,
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingVertical: 2,
+          paddingVertical: 1,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
           marginTop: 2,
         },
@@ -51,19 +45,14 @@ export default function AppTabs() {
         name="index"
         options={{
           title: 'Today',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ focused }) => (
             <View
-              style={{
-                width: 52,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor: focused ? '#EAEFEA' : 'transparent',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              className={`w-10 h-6 rounded-full items-center justify-center ${
+                focused ? 'bg-sage-tint' : 'bg-transparent'
+              }`}>
               <Ionicons
                 name={focused ? 'calendar' : 'calendar-outline'}
-                size={20}
+                size={18}
                 color={focused ? colors.primary : colors.textMuted}
               />
             </View>
@@ -74,19 +63,68 @@ export default function AppTabs() {
         name="explore"
         options={{
           title: 'Medicines',
-          tabBarIcon: ({ color, focused }) => (
+          tabBarIcon: ({ focused }) => (
             <View
-              style={{
-                width: 52,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor: focused ? '#EAEFEA' : 'transparent',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              className={`w-10 h-6 rounded-full items-center justify-center ${
+                focused ? 'bg-sage-tint' : 'bg-transparent'
+              }`}>
               <Ionicons
                 name={focused ? 'medkit' : 'medkit-outline'}
-                size={20}
+                size={18}
+                color={focused ? colors.primary : colors.textMuted}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="meals"
+        options={{
+          title: 'Meals',
+          tabBarIcon: ({ focused }) => (
+            <View
+              className={`w-10 h-6 rounded-full items-center justify-center ${
+                focused ? 'bg-sage-tint' : 'bg-transparent'
+              }`}>
+              <Ionicons
+                name={focused ? 'restaurant' : 'restaurant-outline'}
+                size={18}
+                color={focused ? colors.primary : colors.textMuted}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="bp"
+        options={{
+          title: 'BP',
+          tabBarIcon: ({ focused }) => (
+            <View
+              className={`w-10 h-6 rounded-full items-center justify-center ${
+                focused ? 'bg-sage-tint' : 'bg-transparent'
+              }`}>
+              <Ionicons
+                name={focused ? 'heart' : 'heart-outline'}
+                size={18}
+                color={focused ? colors.primary : colors.textMuted}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ focused }) => (
+            <View
+              className={`w-10 h-6 rounded-full items-center justify-center ${
+                focused ? 'bg-sage-tint' : 'bg-transparent'
+              }`}>
+              <Ionicons
+                name={focused ? 'time' : 'time-outline'}
+                size={18}
                 color={focused ? colors.primary : colors.textMuted}
               />
             </View>
