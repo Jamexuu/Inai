@@ -114,3 +114,18 @@ export interface ReminderMetadata {
   updatedAt: string;
 }
 
+export type BloodPressureCategory = 'normal' | 'elevated' | 'stage1' | 'stage2' | 'crisis';
+
+export interface BloodPressureLog {
+  id: string;
+  systolic: number;     // mmHg
+  diastolic: number;    // mmHg
+  pulse?: number;       // bpm
+  loggedAt: string;     // ISO timestamp
+  notes?: string;
+  arm?: 'left' | 'right';
+  createdAt: string;
+  updatedAt: string;
+}
+
+
