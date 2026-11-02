@@ -260,7 +260,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                     ? "Add to Today's Routine"
                     : 'Add New Medicine'}
                 </Text>
-                <Text className="text-xs font-normal text-umber mt-0.5">
+                <Text className="text-sm font-medium text-umber mt-0.5">
                   {isEditing
                     ? 'Update prescription details or reminder time.'
                     : mode === 'existing'
@@ -268,7 +268,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                     : 'Schedule a new prescription alarm.'}
                 </Text>
               </View>
-              <Pressable onPress={onClose} className="p-1.5 -mr-1.5 active:opacity-70" accessibilityLabel="Close modal">
+              <Pressable
+                onPress={onClose}
+                className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
+                accessibilityLabel="Close modal"
+                accessibilityRole="button">
                 <Ionicons name="close" size={24} color="#6B645D" />
               </Pressable>
             </View>

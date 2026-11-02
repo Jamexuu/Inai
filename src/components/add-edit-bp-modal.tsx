@@ -177,13 +177,14 @@ export const AddEditBPModal: React.FC<AddEditBPModalProps> = ({
                 <Text className="text-xl font-bold text-charcoal">
                   {isEditing ? 'Edit Blood Pressure' : 'Log Blood Pressure'}
                 </Text>
-                <Text className="text-xs font-normal text-umber mt-0.5">
+                <Text className="text-sm font-medium text-umber mt-0.5">
                   Record systolic, diastolic, and pulse.
                 </Text>
               </View>
               <Pressable
                 onPress={onClose}
-                className="p-1.5 -mr-1.5 active:opacity-70"
+                className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
+                accessibilityRole="button"
                 accessibilityLabel="Close modal">
                 <Ionicons name="close" size={24} color="#6B645D" />
               </Pressable>

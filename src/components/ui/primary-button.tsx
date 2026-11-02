@@ -21,7 +21,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   className = '',
 }) => {
   const getVariantButtonClass = () => {
-    if (disabled) return 'bg-surface opacity-60';
+    if (disabled) return 'bg-surface opacity-60 border border-subtle-border';
     switch (variant) {
       case 'primary':
         return 'bg-sage active:bg-[#2E443C]';
@@ -39,19 +39,19 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   };
 
   const getVariantTextClass = () => {
-    if (disabled) return 'text-muted-gray';
+    if (disabled) return 'text-umber';
     switch (variant) {
       case 'primary':
       case 'secondary':
-        return 'text-white';
+        return 'text-white font-bold';
       case 'outline':
-        return 'text-sage';
+        return 'text-sage font-bold';
       case 'danger':
         return 'text-brick font-bold';
       case 'ghost':
-        return 'text-umber';
+        return 'text-umber font-semibold';
       default:
-        return 'text-white';
+        return 'text-white font-bold';
     }
   };
 
@@ -63,9 +63,9 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       accessibilityLabel={label}
       accessibilityState={{ disabled }}
       style={style}
-      className={`min-h-[56px] flex-row items-center justify-center px-5 rounded-2xl gap-2 ${getVariantButtonClass()} ${className}`}>
+      className={`min-h-[50px] flex-row items-center justify-center px-4 rounded-xl gap-2 ${getVariantButtonClass()} ${className}`}>
       {icon}
-      <Text className={`text-[17px] font-semibold tracking-wide text-center flex-shrink ${getVariantTextClass()}`}>
+      <Text className={`text-[16px] tracking-wide text-center flex-shrink ${getVariantTextClass()}`}>
         {label}
       </Text>
     </Pressable>

@@ -12,21 +12,21 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  iconName = 'pill-off',
+  iconName = 'calendar-clock',
   title,
   description,
   actionLabel,
   onAction,
 }) => {
   return (
-    <View className="rounded-2xl border border-subtle-border bg-surface p-6 items-center justify-center my-4 gap-2">
-      <View className="w-[68px] h-[68px] rounded-full border-[1.5px] border-subtle-border bg-card items-center justify-center mb-1.5">
-        <MaterialCommunityIcons name={iconName} size={36} color="#3D5A50" />
+    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-surface p-6 items-center justify-center my-4 gap-2.5">
+      <View className="w-16 h-16 rounded-2xl border border-subtle-border bg-card items-center justify-center mb-1">
+        <MaterialCommunityIcons name={iconName} size={32} color="#3D5A50" />
       </View>
       <Text className="text-xl font-bold text-center text-charcoal">
         {title}
       </Text>
-      <Text className="text-base font-normal text-center leading-[22px] mb-2 text-umber">
+      <Text className="text-base font-medium text-center leading-[22px] mb-2 text-umber max-w-[280px]">
         {description}
       </Text>
       {actionLabel && onAction ? (
@@ -34,7 +34,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           label={actionLabel}
           onPress={onAction}
           variant="primary"
-          className="min-w-[180px]"
+          className="min-w-[180px] min-h-[48px]"
         />
       ) : null}
     </View>

@@ -21,8 +21,14 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   const isPending = dose.status === 'pending';
   const isTaken = dose.status === 'taken';
 
+  const cardStyle = isTaken
+    ? 'bg-herbal-tint/30 border border-herbal/30'
+    : isPending
+    ? 'bg-card border-[1.5px] border-subtle-border'
+    : 'bg-surface/80 border border-subtle-border';
+
   return (
-    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 shadow-sm">
+    <View className={`rounded-2xl p-4 mb-3 ${cardStyle}`}>
       {/* Header with Time and Status */}
       <View className="flex-row justify-between items-center mb-2">
         <View className="flex-row items-center gap-1.5">
@@ -30,7 +36,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
           <Text className="text-lg font-bold text-sage">
             {formatTo12Hour(dose.reminderTime)}
           </Text>
-          <Text className="text-sm font-medium text-umber">
+          <Text className="text-sm font-semibold text-umber">
             ({dose.timeSlot.charAt(0).toUpperCase() + dose.timeSlot.slice(1)})
           </Text>
         </View>
@@ -42,7 +48,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
         <Text className="text-[22px] font-bold tracking-wide text-charcoal">
           {dose.medicineName}
         </Text>
-        <Text className="text-[17px] font-semibold text-terracotta">
+        <Text className="text-[17px] font-bold text-terracotta">
           {dose.dosage}
         </Text>
         {dose.instructions ? (
@@ -63,25 +69,25 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             icon={<Ionicons name="checkmark" size={20} color="#FFFFFF" />}
             variant="primary"
             onPress={() => onMarkTaken(dose)}
-            className="flex-[2]"
+            className="flex-[2] min-h-[48px]"
           />
           <PrimaryButton
             label="Skip"
             icon={<Ionicons name="close" size={18} color="#3D5A50" />}
             variant="outline"
             onPress={() => onMarkSkipped(dose)}
-            className="flex-1"
+            className="flex-1 min-h-[48px]"
           />
         </View>
       ) : (
         <View className="flex-row items-center justify-between pt-2 border-t border-subtle-border">
-          <View className="flex-row items-center gap-1.5 flex-1">
+          <View className="flex-row items-center gap-1.5 flex-1 pr-2">
             <Ionicons
               name={isTaken ? 'checkmark-circle' : 'close-circle-outline'}
-              size={18}
+              size={20}
               color={isTaken ? '#2E684D' : '#6B645D'}
             />
-            <Text className="text-[15px] font-medium text-umber">
+            <Text className="text-[15px] font-semibold text-umber">
               {isTaken
                 ? `Completed for today${dose.loggedAt ? ` (${formatTo12Hour(dose.loggedAt)})` : ''}`
                 : 'Skipped for today'}
@@ -91,7 +97,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
             label="Change"
             variant="ghost"
             onPress={() => (isTaken ? onMarkSkipped(dose) : onMarkTaken(dose))}
-            className="min-h-[40px] px-3"
+            className="min-h-[44px] min-w-[70px] px-3.5"
           />
         </View>
       )}
