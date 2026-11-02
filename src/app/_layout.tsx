@@ -1,7 +1,8 @@
 import '../global.css';
 import React, { useEffect, useState } from 'react';
-import { StatusBar } from 'react-native';
-import { DefaultTheme, ThemeProvider } from 'expo-router';
+import { StatusBar as RNStatusBar, View } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 
@@ -11,13 +12,20 @@ import { seedInitialDataIfEmpty } from '@/database/seed';
 import { useAppStore } from '@/store/app.store';
 import { setupNotificationEventHandlers } from '@/notifications';
 import { PermissionPromptModal } from '@/components/permission-prompt-modal';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function TabLayout() {
   const setDatabaseReady = useAppStore((state) => state.setDatabaseReady);
+  const setThemeMode = useAppStore((state) => state.setThemeMode);
   const [ready, setReady] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
+
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const colors = Colors[isDark ? 'dark' : 'light'];
 
   useEffect(() => {
     const unsubscribeNotifications = setupNotificationEventHandlers();
@@ -26,6 +34,11 @@ export default function TabLayout() {
       try {
         await initializeDatabase();
         await seedInitialDataIfEmpty();
+
+        const { settingsService } = await import('@/services/settings.service');
+        const savedTheme = await settingsService.getThemeMode();
+        setThemeMode(savedTheme);
+
         const { medicineService } = await import('@/services/medicine.service');
         const { mealService } = await import('@/services/meal.service');
         const { bloodPressureService } = await import('@/services/blood-pressure.service');
@@ -37,7 +50,6 @@ export default function TabLayout() {
         setDatabaseReady(true);
 
         // Check if permission prompt has been shown to new user
-        const { settingsService } = await import('@/services/settings.service');
         const hasDecided = await settingsService.hasPromptedPermissions();
         if (!hasDecided) {
           const { notificationProvider } = await import('@/notifications');
@@ -61,24 +73,35 @@ export default function TabLayout() {
     return () => {
       unsubscribeNotifications();
     };
-  }, [setDatabaseReady]);
+  }, [setDatabaseReady, setThemeMode]);
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider value={DefaultTheme}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FAF7F2" translucent={false} />
-        {ready ? (
-          <>
-            <AppTabs />
-            <PermissionPromptModal
-              visible={showPermissionModal}
-              onAllow={() => setShowPermissionModal(false)}
-              onDeny={() => setShowPermissionModal(false)}
-            />
-          </>
-        ) : null}
+      <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+        {/* Phone notification bar (status bar) is guaranteed visible with high contrast across all tabs */}
+        <RNStatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={isDark ? '#181715' : '#FAF7F2'}
+          translucent={false}
+          hidden={false}
+        />
+        <ExpoStatusBar
+          style={isDark ? 'light' : 'dark'}
+          hidden={false}
+        />
+        <View className={`flex-1 ${isDark ? 'dark bg-canvas-dark' : 'bg-canvas'}`}>
+          {ready ? (
+            <>
+              <AppTabs />
+              <PermissionPromptModal
+                visible={showPermissionModal}
+                onAllow={() => setShowPermissionModal(false)}
+                onDeny={() => setShowPermissionModal(false)}
+              />
+            </>
+          ) : null}
+        </View>
       </ThemeProvider>
     </SafeAreaProvider>
   );
 }
-

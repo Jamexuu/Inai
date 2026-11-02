@@ -1,5 +1,7 @@
 import { getDatabase } from '@/database/database';
 
+export type AppThemeMode = 'light' | 'dark' | 'system';
+
 export class SettingsService {
   async getSetting(key: string): Promise<string | null> {
     try {
@@ -31,6 +33,18 @@ export class SettingsService {
     }
   }
 
+  async getThemeMode(): Promise<AppThemeMode> {
+    const val = await this.getSetting('theme_mode');
+    if (val === 'light' || val === 'dark' || val === 'system') {
+      return val;
+    }
+    return 'light'; // Default to warm light linen mode for Mom!
+  }
+
+  async setThemeMode(mode: AppThemeMode): Promise<void> {
+    await this.setSetting('theme_mode', mode);
+  }
+
   async hasPromptedPermissions(): Promise<boolean> {
     const val = await this.getSetting('permissions_prompt_decided');
     return val === 'true';
@@ -42,4 +56,3 @@ export class SettingsService {
 }
 
 export const settingsService = new SettingsService();
-
