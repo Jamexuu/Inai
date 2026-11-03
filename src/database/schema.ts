@@ -121,6 +121,19 @@ CREATE TABLE IF NOT EXISTS blood_pressure_logs (
 
 CREATE INDEX IF NOT EXISTS idx_bp_logs_logged_at ON blood_pressure_logs(logged_at);
 
+-- Blood Sugar Logs
+CREATE TABLE IF NOT EXISTS blood_sugar_logs (
+  id TEXT PRIMARY KEY NOT NULL,
+  level REAL NOT NULL,
+  context TEXT NOT NULL,
+  logged_at TEXT NOT NULL,
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sugar_logs_logged_at ON blood_sugar_logs(logged_at);
+
 -- App Settings & Preferences
 CREATE TABLE IF NOT EXISTS app_settings (
   key TEXT PRIMARY KEY NOT NULL,
@@ -135,4 +148,3 @@ export const DEFAULT_MEALS_SEED = [
   { id: 'meal_dinner', meal_type: 'dinner', target_time: '18:30', label: 'Dinner' },
   { id: 'meal_snack', meal_type: 'snack', target_time: '15:30', label: 'Afternoon Snack' },
 ];
-

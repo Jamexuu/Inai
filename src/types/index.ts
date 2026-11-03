@@ -1,6 +1,6 @@
 /**
  * Core Domain Types for Inai
- * Offline-first maintenance medicine and meal tracker for Mom.
+ * Offline-first maintenance medicine, blood sugar, and vitals tracker for Mom.
  */
 
 export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'bedtime';
@@ -102,7 +102,7 @@ export interface TodayMealDose {
 
 export interface ReminderMetadata {
   id: string;
-  entityType: 'medicine' | 'meal';
+  entityType: 'medicine' | 'meal' | 'bp_reminder' | 'sugar_reminder';
   entityId: string;
   scheduleId?: string;
   notificationId: string;
@@ -128,4 +128,16 @@ export interface BloodPressureLog {
   updatedAt: string;
 }
 
+export type BloodSugarContext = 'fasting' | 'before_meal' | 'after_meal' | 'bedtime' | 'random';
 
+export type BloodSugarCategory = 'low' | 'normal' | 'elevated' | 'high';
+
+export interface BloodSugarLog {
+  id: string;
+  level: number;        // mg/dL
+  context: BloodSugarContext;
+  loggedAt: string;     // ISO timestamp
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
