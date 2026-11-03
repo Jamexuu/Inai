@@ -13,16 +13,31 @@ export interface BPReminderConfig {
   enabled: boolean;
 }
 
+export interface BPAverageResult {
+  avgSystolic: number | null;
+  avgDiastolic: number | null;
+  avgPulse: number | null;
+  count: number;
+}
+
 const DEFAULT_BP_REMINDERS: BPReminderConfig[] = [
   { id: 'morning', label: 'Morning Blood Pressure Check', reminderTime: '08:00', enabled: true },
   { id: 'evening', label: 'Evening Blood Pressure Check', reminderTime: '19:00', enabled: true },
 ];
 
 export class BloodPressureService {
+  private customNotifier?: INotificationProvider;
+
   constructor(
     private readonly bpRepo: IBloodPressureRepository = new BloodPressureRepository(),
-    private readonly notifier: INotificationProvider = notificationProvider
-  ) {}
+    notifier?: INotificationProvider
+  ) {
+    this.customNotifier = notifier;
+  }
+
+  private get notifier(): INotificationProvider {
+    return this.customNotifier ?? notificationProvider;
+  }
 
   async getAllLogs(): Promise<BloodPressureLog[]> {
     return this.bpRepo.getAll();
@@ -61,6 +76,110 @@ export class BloodPressureService {
 
   async deleteLog(id: string): Promise<void> {
     return this.bpRepo.delete(id);
+  }
+
+  // ----------------------------------------------------
+  // Statistical Calculations (Weekly, Monthly, Today)
+  // ----------------------------------------------------
+
+  /**
+   * Calculates the weekly average blood pressure for the week containing referenceDate (Mon-Sun).
+   */
+  calculateWeeklyAverage(
+    logs: BloodPressureLog[],
+    referenceDate: Date = new Date()
+  ): BPAverageResult {
+    const ref = new Date(referenceDate);
+    const day = ref.getDay(); // 0 is Sun, 1 is Mon
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const startOfWeek = new Date(ref);
+    startOfWeek.setDate(ref.getDate() + diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const weekLogs = logs.filter((log) => {
+      const logDate = new Date(log.loggedAt);
+      return logDate >= startOfWeek && logDate <= endOfWeek;
+    });
+
+    if (weekLogs.length === 0) {
+      return { avgSystolic: null, avgDiastolic: null, avgPulse: null, count: 0 };
+    }
+
+    const totalSys = weekLogs.reduce((acc, curr) => acc + curr.systolic, 0);
+    const totalDia = weekLogs.reduce((acc, curr) => acc + curr.diastolic, 0);
+    const pulseLogs = weekLogs.filter((l) => l.pulse !== undefined && l.pulse > 0);
+    const totalPulse = pulseLogs.reduce((acc, curr) => acc + (curr.pulse || 0), 0);
+
+    return {
+      avgSystolic: Math.round(totalSys / weekLogs.length),
+      avgDiastolic: Math.round(totalDia / weekLogs.length),
+      avgPulse: pulseLogs.length > 0 ? Math.round(totalPulse / pulseLogs.length) : null,
+      count: weekLogs.length,
+    };
+  }
+
+  /**
+   * Calculates the monthly average blood pressure for the month of referenceDate.
+   */
+  calculateMonthlyAverage(
+    logs: BloodPressureLog[],
+    referenceDate: Date = new Date()
+  ): BPAverageResult {
+    const ref = new Date(referenceDate);
+    const startOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const monthLogs = logs.filter((log) => {
+      const logDate = new Date(log.loggedAt);
+      return logDate >= startOfMonth && logDate <= endOfMonth;
+    });
+
+    if (monthLogs.length === 0) {
+      return { avgSystolic: null, avgDiastolic: null, avgPulse: null, count: 0 };
+    }
+
+    const totalSys = monthLogs.reduce((acc, curr) => acc + curr.systolic, 0);
+    const totalDia = monthLogs.reduce((acc, curr) => acc + curr.diastolic, 0);
+    const pulseLogs = monthLogs.filter((l) => l.pulse !== undefined && l.pulse > 0);
+    const totalPulse = pulseLogs.reduce((acc, curr) => acc + (curr.pulse || 0), 0);
+
+    return {
+      avgSystolic: Math.round(totalSys / monthLogs.length),
+      avgDiastolic: Math.round(totalDia / monthLogs.length),
+      avgPulse: pulseLogs.length > 0 ? Math.round(totalPulse / pulseLogs.length) : null,
+      count: monthLogs.length,
+    };
+  }
+
+  /**
+   * Calculates today's average blood pressure.
+   */
+  calculateTodayAverage(
+    logs: BloodPressureLog[],
+    referenceDate: Date = new Date()
+  ): BPAverageResult {
+    const todayStr = referenceDate.toISOString().substring(0, 10);
+    const todayLogs = logs.filter((log) => log.loggedAt.substring(0, 10) === todayStr);
+
+    if (todayLogs.length === 0) {
+      return { avgSystolic: null, avgDiastolic: null, avgPulse: null, count: 0 };
+    }
+
+    const totalSys = todayLogs.reduce((acc, curr) => acc + curr.systolic, 0);
+    const totalDia = todayLogs.reduce((acc, curr) => acc + curr.diastolic, 0);
+    const pulseLogs = todayLogs.filter((l) => l.pulse !== undefined && l.pulse > 0);
+    const totalPulse = pulseLogs.reduce((acc, curr) => acc + (curr.pulse || 0), 0);
+
+    return {
+      avgSystolic: Math.round(totalSys / todayLogs.length),
+      avgDiastolic: Math.round(totalDia / todayLogs.length),
+      avgPulse: pulseLogs.length > 0 ? Math.round(totalPulse / pulseLogs.length) : null,
+      count: todayLogs.length,
+    };
   }
 
   // ----------------------------------------------------
@@ -174,5 +293,3 @@ export class BloodPressureService {
 }
 
 export const bloodPressureService = new BloodPressureService();
-
-
