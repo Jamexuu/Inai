@@ -12,9 +12,11 @@ import { useAppStore } from '@/store/app.store';
 import { AppThemeMode } from '@/services/settings.service';
 import { notificationProvider } from '@/notifications';
 import { SectionHeader, PrimaryButton } from '@/components/ui';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const colors = useTheme();
   const themeMode = useAppStore((state) => state.themeMode);
   const setThemeMode = useAppStore((state) => state.setThemeMode);
 
@@ -49,6 +51,14 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleTestNotification = async () => {
+    try {
+      await notificationProvider.displayAlarmNow('Metformin', '500 mg');
+    } catch (e) {
+      console.warn('Failed to display test notification:', e);
+    }
+  };
+
   const themeOptions: {
     key: AppThemeMode;
     title: string;
@@ -76,22 +86,25 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-canvas">
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={{ backgroundColor: colors.background }}
+      className="flex-1 bg-canvas dark:bg-canvas-dark">
       <ScrollView contentContainerClassName="px-4 pb-12">
         {/* Header with Back Button */}
         <View className="pt-3 pb-3 flex-row items-center gap-3">
           <Pressable
             onPress={() => router.back()}
-            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface border border-subtle-border active:bg-card-selected"
+            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
             accessibilityRole="button"
             accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={22} color="#3D5A50" />
+            <Ionicons name="arrow-back" size={22} color={colors.primary} />
           </Pressable>
           <View className="flex-1">
-            <Text className="text-[26px] font-bold text-charcoal">
+            <Text className="text-[26px] font-bold text-charcoal dark:text-charcoal-dark">
               Settings
             </Text>
-            <Text className="text-sm font-semibold text-umber">
+            <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
               Display theme and routine preferences for Mom.
             </Text>
           </View>
@@ -115,27 +128,27 @@ export default function SettingsScreen() {
                 accessibilityLabel={`${opt.title}: ${opt.description}`}
                 className={`min-h-[64px] rounded-2xl border-[1.5px] p-4 flex-row items-center justify-between ${
                   isSelected
-                    ? 'bg-sage-tint border-sage'
-                    : 'bg-card border-subtle-border active:bg-surface'
+                    ? 'bg-sage-tint dark:bg-sage-dark-tint border-sage dark:border-sage-dark'
+                    : 'bg-card dark:bg-card-dark border-subtle-border dark:border-subtle-border-dark active:bg-surface'
                 }`}>
                 <View className="flex-row items-center gap-3 flex-1 pr-3">
                   <View
                     className={`w-11 h-11 rounded-xl items-center justify-center border ${
                       isSelected
-                        ? 'bg-sage border-sage'
-                        : 'bg-surface border-subtle-border'
+                        ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                        : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark'
                     }`}>
                     <Ionicons
                       name={opt.icon}
                       size={22}
-                      color={isSelected ? '#FFFFFF' : '#3D5A50'}
+                      color={isSelected ? (opt.key === 'dark' ? '#101F18' : '#FFFFFF') : colors.primary}
                     />
                   </View>
                   <View className="flex-1 gap-0.5">
-                    <Text className="text-base font-bold text-charcoal">
+                    <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                       {opt.title}
                     </Text>
-                    <Text className="text-xs font-semibold text-umber">
+                    <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
                       {opt.description}
                     </Text>
                   </View>
@@ -145,11 +158,11 @@ export default function SettingsScreen() {
                 <View
                   className={`w-6 h-6 rounded-full border-[2px] items-center justify-center ${
                     isSelected
-                      ? 'border-sage bg-sage'
-                      : 'border-subtle-border bg-surface'
+                      ? 'border-sage dark:border-sage-dark bg-sage dark:bg-sage-dark'
+                      : 'border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark'
                   }`}>
                   {isSelected ? (
-                    <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                    <Ionicons name="checkmark-sharp" size={16} color={opt.key === 'dark' ? '#101F18' : '#FFFFFF'} />
                   ) : null}
                 </View>
               </Pressable>
@@ -158,65 +171,65 @@ export default function SettingsScreen() {
         </View>
 
         {/* Display Comfort & Navigation Card */}
-        <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-3 mb-4">
+        <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 gap-3 mb-4">
           <View className="flex-row items-center gap-2.5">
-            <View className="w-9 h-9 rounded-xl bg-terracotta-tint border border-terracotta/20 items-center justify-center">
-              <Ionicons name="phone-portrait-outline" size={18} color="#C46849" />
+            <View className="w-9 h-9 rounded-xl bg-terracotta-tint dark:bg-terracotta-dark-tint border border-terracotta/20 dark:border-terracotta-dark/20 items-center justify-center">
+              <Ionicons name="phone-portrait-outline" size={18} color={colors.secondary} />
             </View>
             <View className="flex-1">
-              <Text className="text-base font-bold text-charcoal">
+              <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                 Display & Navigation
               </Text>
-              <Text className="text-xs font-semibold text-umber">
+              <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
                 Designed for readability and accessibility
               </Text>
             </View>
           </View>
 
           <View className="gap-2 pt-1">
-            <View className="flex-row items-start gap-2.5 bg-surface p-3 rounded-xl border border-subtle-border">
-              <Ionicons name="notifications" size={18} color="#3D5A50" className="mt-0.5" />
+            <View className="flex-row items-start gap-2.5 bg-surface dark:bg-surface-dark p-3 rounded-xl border border-subtle-border dark:border-subtle-border-dark">
+              <Ionicons name="notifications" size={18} color={colors.primary} className="mt-0.5" />
               <View className="flex-1">
-                <Text className="text-sm font-bold text-charcoal">
+                <Text className="text-sm font-bold text-charcoal dark:text-charcoal-dark">
                   Phone Notification Bar
                 </Text>
-                <Text className="text-xs font-medium text-umber mt-0.5">
+                <Text className="text-xs font-medium text-umber dark:text-umber-dark mt-0.5">
                   Always clearly visible at the top with high-contrast clock, battery, and notification icons.
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row items-start gap-2.5 bg-surface p-3 rounded-xl border border-subtle-border">
-              <Ionicons name="menu" size={18} color="#3D5A50" className="mt-0.5" />
+            <View className="flex-row items-start gap-2.5 bg-surface dark:bg-surface-dark p-3 rounded-xl border border-subtle-border dark:border-subtle-border-dark">
+              <Ionicons name="menu" size={18} color={colors.primary} className="mt-0.5" />
               <View className="flex-1">
-                <Text className="text-sm font-bold text-charcoal">
+                <Text className="text-sm font-bold text-charcoal dark:text-charcoal-dark">
                   Bottom Navigation Bar
                 </Text>
-                <Text className="text-xs font-medium text-umber mt-0.5">
-                  Kept in high-visibility warm light linen across all modes for ease of navigation.
+                <Text className="text-xs font-medium text-umber dark:text-umber-dark mt-0.5">
+                  Seamlessly matches your theme with clear icons and comfortable touch targets across all tabs.
                 </Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Routine Alarms & Offline Status */}
+        {/* Routine Reminders & Offline Status */}
         <SectionHeader
-          title="Routine Alarms"
-          subtitle="Local offline reminder status"
+          title="Routine Reminders"
+          subtitle="Local offline notification status"
         />
 
-        <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-3 mb-4">
+        <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 gap-3 mb-4">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-              <View className="w-10 h-10 rounded-xl bg-herbal-tint border border-herbal/20 items-center justify-center">
-                <Ionicons name="alarm-outline" size={20} color="#2E684D" />
+              <View className="w-10 h-10 rounded-xl bg-herbal-tint dark:bg-herbal-dark-tint border border-herbal/20 dark:border-herbal-dark/20 items-center justify-center">
+                <Ionicons name="notifications-outline" size={20} color={colors.success} />
               </View>
               <View className="flex-1">
-                <Text className="text-base font-bold text-charcoal">
-                  Alarm Reminders
+                <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
+                  Medicine & Routine Reminders
                 </Text>
-                <Text className="text-xs font-semibold text-umber">
+                <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
                   Status: {notificationStatus}
                 </Text>
               </View>
@@ -230,30 +243,49 @@ export default function SettingsScreen() {
                 className="min-h-[44px] px-3.5"
               />
             ) : (
-              <View className="px-3 py-1.5 rounded-xl bg-herbal-tint border border-herbal flex-row items-center gap-1">
-                <Ionicons name="checkmark-circle" size={14} color="#2E684D" />
-                <Text className="text-xs font-bold text-herbal">Active</Text>
+              <View className="px-3 py-1.5 rounded-xl bg-herbal-tint dark:bg-herbal-dark-tint border border-herbal dark:border-herbal-dark flex-row items-center gap-1">
+                <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                <Text className="text-xs font-bold text-herbal dark:text-herbal-dark">Active</Text>
               </View>
             )}
           </View>
 
-          <View className="flex-row items-center gap-2 bg-surface p-3 rounded-xl border border-subtle-border">
-            <MaterialCommunityIcons name="shield-check" size={20} color="#2E684D" />
-            <Text className="text-xs font-medium text-umber flex-1">
+          {/* Test Notification Action Row */}
+          <View className="flex-row items-center justify-between pt-2 border-t border-subtle-border dark:border-subtle-border-dark">
+            <View className="flex-1 pr-2">
+              <Text className="text-sm font-bold text-charcoal dark:text-charcoal-dark">
+                Test Reminder Banner
+              </Text>
+              <Text className="text-xs font-medium text-umber dark:text-umber-dark">
+                Preview normal notification with 'Mark as Taken' action
+              </Text>
+            </View>
+            <PrimaryButton
+              label="Test"
+              variant="outline"
+              icon={<Ionicons name="notifications" size={16} color={colors.primary} />}
+              onPress={handleTestNotification}
+              className="min-h-[40px] px-3"
+            />
+          </View>
+
+          <View className="flex-row items-center gap-2 bg-surface dark:bg-surface-dark p-3 rounded-xl border border-subtle-border dark:border-subtle-border-dark">
+            <MaterialCommunityIcons name="shield-check" size={20} color={colors.success} />
+            <Text className="text-xs font-medium text-umber dark:text-umber-dark flex-1">
               100% Offline: reminders wake the device locally without needing Wi-Fi or data connection.
             </Text>
           </View>
         </View>
 
         {/* About Card */}
-        <View className="rounded-2xl border border-subtle-border bg-surface p-4 items-center gap-1.5">
-          <Text className="text-base font-bold text-charcoal">
+        <View className="rounded-2xl border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark p-4 items-center gap-1.5">
+          <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
             Inai
           </Text>
-          <Text className="text-xs font-medium text-umber text-center">
+          <Text className="text-xs font-medium text-umber dark:text-umber-dark text-center">
             A digital helper that gently takes care of Mom's daily routine.
           </Text>
-          <Text className="text-xs font-semibold text-umber mt-1">
+          <Text className="text-xs font-semibold text-umber dark:text-umber-dark mt-1">
             Version 1.0.0 · Offline SQLite Database
           </Text>
         </View>

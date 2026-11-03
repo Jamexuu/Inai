@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { notificationProvider } from '@/notifications';
 import { settingsService } from '@/services/settings.service';
+import { useTheme } from '@/hooks/use-theme';
 
 interface PermissionPromptModalProps {
   visible: boolean;
@@ -21,6 +22,7 @@ export const PermissionPromptModal: React.FC<PermissionPromptModalProps> = ({
   onAllow,
   onDeny,
 }) => {
+  const colors = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAllow = async () => {
@@ -53,76 +55,76 @@ export const PermissionPromptModal: React.FC<PermissionPromptModalProps> = ({
       animationType="fade"
       accessibilityViewIsModal={true}
       statusBarTranslucent={true}>
-      <View className="flex-1 bg-charcoal/60 justify-center items-center px-4 py-8">
-        <View className="w-full max-w-[420px] bg-card rounded-3xl border-[1.5px] border-subtle-border p-6 gap-4">
+      <View className="flex-1 bg-black/60 justify-center items-center px-4 py-8">
+        <View className="w-full max-w-[420px] bg-card dark:bg-card-dark rounded-3xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark p-6 gap-4">
           {/* Header Icon */}
-          <View className="w-16 h-16 rounded-2xl bg-sage-tint border border-sage/30 items-center justify-center self-center">
-            <Ionicons name="notifications-outline" size={32} color="#3D5A50" />
+          <View className="w-16 h-16 rounded-2xl bg-sage-tint dark:bg-sage-dark-tint border border-sage/30 items-center justify-center self-center">
+            <Ionicons name="notifications-outline" size={32} color={colors.primary} />
           </View>
 
           {/* Title & Description */}
           <View className="items-center gap-1.5">
-            <Text className="text-[22px] font-bold text-charcoal text-center leading-[28px]">
-              Let Inai Ring Reminders for Mom?
+            <Text className="text-[22px] font-bold text-charcoal dark:text-charcoal-dark text-center leading-[28px]">
+              Let Inai Remind Mom for Medicines & Routine?
             </Text>
-            <Text className="text-[15px] font-medium text-umber text-center leading-[22px]">
-              Inai helps Mom keep a calm, steady daily routine with gentle alarms that wake the phone on time.
+            <Text className="text-[15px] font-medium text-umber dark:text-umber-dark text-center leading-[22px]">
+              Inai helps Mom keep a calm, steady daily routine with gentle notifications and action buttons to log doses with one tap.
             </Text>
           </View>
 
           {/* Benefits List */}
-          <View className="rounded-2xl bg-surface border border-subtle-border p-3.5 gap-3">
+          <View className="rounded-2xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark p-3.5 gap-3">
             <View className="flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-xl bg-sage-tint items-center justify-center">
-                <Ionicons name="medical-outline" size={18} color="#3D5A50" />
+              <View className="w-9 h-9 rounded-xl bg-sage-tint dark:bg-sage-dark-tint items-center justify-center">
+                <Ionicons name="medical-outline" size={18} color={colors.primary} />
               </View>
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-charcoal">
-                  Medicine Alarms
+                <Text className="text-[14px] font-bold text-charcoal dark:text-charcoal-dark">
+                  Medicine Reminders
                 </Text>
-                <Text className="text-[13px] font-medium text-umber">
-                  Reliable reminders for morning, afternoon and evening doses.
+                <Text className="text-[13px] font-medium text-umber dark:text-umber-dark">
+                  Timely notifications with quick "Mark as Taken" action.
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-xl bg-terracotta-tint items-center justify-center">
-                <Ionicons name="restaurant-outline" size={18} color="#C46849" />
+              <View className="w-9 h-9 rounded-xl bg-terracotta-tint dark:bg-terracotta-dark-tint items-center justify-center">
+                <Ionicons name="water-outline" size={18} color={colors.secondary} />
               </View>
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-charcoal">
-                  Meal Routine
+                <Text className="text-[14px] font-bold text-charcoal dark:text-charcoal-dark">
+                  Blood Sugar Tracking
                 </Text>
-                <Text className="text-[13px] font-medium text-umber">
-                  Gentle prompts for Breakfast, Lunch, Snack and Dinner.
+                <Text className="text-[13px] font-medium text-umber dark:text-umber-dark">
+                  Gentle prompts for fasting and post-meal glucose logs.
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-xl bg-brick-tint items-center justify-center">
-                <Ionicons name="heart-outline" size={18} color="#A33B32" />
+              <View className="w-9 h-9 rounded-xl bg-brick-tint dark:bg-brick-dark-tint items-center justify-center">
+                <Ionicons name="heart-outline" size={18} color={colors.error} />
               </View>
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-charcoal">
+                <Text className="text-[14px] font-bold text-charcoal dark:text-charcoal-dark">
                   Blood Pressure Checks
                 </Text>
-                <Text className="text-[13px] font-medium text-umber">
+                <Text className="text-[13px] font-medium text-umber dark:text-umber-dark">
                   Prompts to rest and record morning and evening readings.
                 </Text>
               </View>
             </View>
 
             <View className="flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-xl bg-herbal-tint items-center justify-center">
-                <Ionicons name="shield-checkmark-outline" size={18} color="#2E684D" />
+              <View className="w-9 h-9 rounded-xl bg-herbal-tint dark:bg-herbal-dark-tint items-center justify-center">
+                <Ionicons name="shield-checkmark-outline" size={18} color={colors.success} />
               </View>
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-charcoal">
+                <Text className="text-[14px] font-bold text-charcoal dark:text-charcoal-dark">
                   100% Offline & Private
                 </Text>
-                <Text className="text-[13px] font-medium text-umber">
+                <Text className="text-[13px] font-medium text-umber dark:text-umber-dark">
                   Scheduled locally on Mom's device. No internet required.
                 </Text>
               </View>
@@ -132,12 +134,12 @@ export const PermissionPromptModal: React.FC<PermissionPromptModalProps> = ({
           {/* Action Buttons */}
           <View className="gap-2.5 pt-1">
             <PrimaryButton
-              label={isSubmitting ? 'Setting up...' : 'Allow Routine Alarms'}
+              label={isSubmitting ? 'Setting up...' : 'Allow Routine Reminders'}
               icon={
                 isSubmitting ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+                  <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
                 )
               }
               variant="primary"

@@ -167,7 +167,7 @@ export default function MealsScreen() {
               rightElement={
                 <PrimaryButton
                   label="Add Meal"
-                  icon={<Ionicons name="add" size={18} color="#3D5A50" />}
+                  icon={<Ionicons name="add-sharp" size={21} color="#3D5A50" />}
                   variant="outline"
                   onPress={handleOpenAdd}
                   className="min-h-[44px] px-4"

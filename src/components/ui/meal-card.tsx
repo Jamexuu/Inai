@@ -63,7 +63,7 @@ export const MealCard: React.FC<MealCardProps> = ({
               className="min-w-[44px] min-h-[44px] items-center justify-center rounded-xl active:bg-surface"
               accessibilityRole="button"
               accessibilityLabel={`Edit ${meal.label} time`}>
-              <Ionicons name="pencil-outline" size={18} color="#6B645D" />
+              <Ionicons name="pencil" size={18} color="#6B645D" />
             </Pressable>
           ) : null}
         </View>
@@ -73,7 +73,7 @@ export const MealCard: React.FC<MealCardProps> = ({
         {!isCompleted ? (
           <PrimaryButton
             label="Mark Done"
-            icon={<Ionicons name="checkmark" size={18} color="#3D5A50" />}
+            icon={<Ionicons name="checkmark-sharp" size={20} color="#3D5A50" />}
             variant="outline"
             onPress={() => onMarkDone(meal)}
             className="min-h-[48px]"

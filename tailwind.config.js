@@ -7,35 +7,35 @@ module.exports = {
     extend: {
       colors: {
         canvas: {
-          DEFAULT: '#FAF7F2',
+          DEFAULT: 'var(--color-canvas, #FAF7F2)',
           dark: '#181715',
         },
         surface: {
-          DEFAULT: '#F2ECE4',
+          DEFAULT: 'var(--color-surface, #F2ECE4)',
           dark: '#252320',
         },
         card: {
-          DEFAULT: '#FFFFFF',
+          DEFAULT: 'var(--color-card, #FFFFFF)',
           dark: '#2E2A26',
         },
         'card-selected': {
-          DEFAULT: '#E8DFD5',
+          DEFAULT: 'var(--color-card-selected, #E8DFD5)',
           dark: '#3E3833',
         },
         'subtle-border': {
-          DEFAULT: '#E5DED4',
+          DEFAULT: 'var(--color-subtle-border, #E5DED4)',
           dark: '#3F3A35',
         },
         charcoal: {
-          DEFAULT: '#282522',
+          DEFAULT: 'var(--color-charcoal, #282522)',
           dark: '#FAF7F2',
         },
         umber: {
-          DEFAULT: '#6B645D',
+          DEFAULT: 'var(--color-umber, #6B645D)',
           dark: '#C5BFB7',
         },
         'muted-gray': {
-          DEFAULT: '#8E867E',
+          DEFAULT: 'var(--color-muted-gray, #8E867E)',
           dark: '#969088',
         },
         sage: {
@@ -73,4 +73,3 @@ module.exports = {
   },
   plugins: [],
 };
-

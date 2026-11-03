@@ -21,9 +21,11 @@ import {
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { formatTo12Hour } from '@/utils/date.utils';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function MedicinesScreen() {
   const router = useRouter();
+  const colors = useTheme();
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
@@ -83,26 +85,36 @@ export default function MedicinesScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-canvas">
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={{ backgroundColor: colors.background }}
+      className="flex-1 bg-canvas dark:bg-canvas-dark">
       <ScrollView
         contentContainerClassName="px-4 pb-12"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }>
         {/* Screen Header & Settings Button */}
         <View className="pt-3 pb-3 flex-row justify-between items-start">
           <View className="gap-1 flex-1 pr-2">
-            <Text className="text-[28px] font-bold text-charcoal">
+            <Text className="text-[28px] font-bold text-charcoal dark:text-charcoal-dark">
               Daily Medicines
             </Text>
-            <Text className="text-base font-semibold text-umber">
+            <Text className="text-base font-semibold text-umber dark:text-umber-dark">
               All registered prescriptions and recent intake records for Mom.
             </Text>
           </View>
           <Pressable
             onPress={() => router.push('/settings')}
-            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface border border-subtle-border active:bg-card-selected"
+            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
             accessibilityRole="button"
             accessibilityLabel="Open settings and display theme">
-            <Ionicons name="settings-outline" size={22} color="#3D5A50" />
+            <Ionicons name="settings-outline" size={22} color={colors.primary} />
           </Pressable>
         </View>
 
@@ -128,7 +140,7 @@ export default function MedicinesScreen() {
             <View className="my-1">
               <PrimaryButton
                 label="Add New Medicine"
-                icon={<Ionicons name="add" size={20} color="#FFFFFF" />}
+                icon={<Ionicons name="add-sharp" size={22} color="#FFFFFF" />}
                 variant="primary"
                 onPress={() => {
                   setSelectedMedicineForEdit(null);
@@ -159,13 +171,13 @@ export default function MedicinesScreen() {
               medicines.map((med) => (
                 <View
                   key={med.id}
-                  className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 gap-2.5">
+                  className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 mb-3 gap-2.5">
                   <View className="flex-row justify-between items-start">
                     <View className="gap-0.5 flex-1 pr-2">
-                      <Text className="text-[22px] font-bold text-charcoal">
+                      <Text className="text-[22px] font-bold text-charcoal dark:text-charcoal-dark">
                         {med.name}
                       </Text>
-                      <Text className="text-[17px] font-bold text-terracotta">
+                      <Text className="text-[17px] font-bold text-terracotta dark:text-terracotta-dark">
                         {med.dosage}
                       </Text>
                     </View>
@@ -175,21 +187,21 @@ export default function MedicinesScreen() {
                           setSelectedMedicineForEdit(med);
                           setIsAddModalOpen(true);
                         }}
-                        className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-surface border border-subtle-border"
+                        className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-surface dark:active:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark"
                         accessibilityRole="button"
                         accessibilityLabel={`Edit ${med.name}`}>
-                        <Ionicons name="pencil-outline" size={16} color="#3D5A50" />
-                        <Text className="text-[14px] font-bold text-sage">
+                        <Ionicons name="pencil" size={18} color={colors.primary} />
+                        <Text className="text-[14px] font-bold text-sage dark:text-sage-dark">
                           Edit
                         </Text>
                       </Pressable>
                       <Pressable
                         onPress={() => handleDeleteMedicine(med)}
-                        className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-brick-tint/40 border border-brick/30"
+                        className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-brick-tint/40 border border-brick/30 dark:border-brick-dark/30"
                         accessibilityRole="button"
                         accessibilityLabel={`Remove ${med.name}`}>
-                        <Ionicons name="trash-outline" size={16} color="#A33B32" />
-                        <Text className="text-[14px] font-bold text-brick">
+                        <Ionicons name="trash-outline" size={16} color={colors.error} />
+                        <Text className="text-[14px] font-bold text-brick dark:text-brick-dark">
                           Delete
                         </Text>
                       </Pressable>
@@ -198,30 +210,30 @@ export default function MedicinesScreen() {
 
                   {med.instructions ? (
                     <View className="flex-row items-center gap-1.5 mt-0.5">
-                      <Ionicons name="information-circle-outline" size={16} color="#6B645D" />
-                      <Text className="text-[15px] font-medium text-umber flex-1">
+                      <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
+                      <Text className="text-[15px] font-medium text-umber dark:text-umber-dark flex-1">
                         {med.instructions}
                       </Text>
                     </View>
                   ) : null}
 
                   {med.notes ? (
-                    <Text className="text-sm font-medium text-umber bg-surface px-3 py-1.5 rounded-lg border border-subtle-border">
+                    <Text className="text-sm font-medium text-umber dark:text-umber-dark bg-surface dark:bg-surface-dark px-3 py-1.5 rounded-lg border border-subtle-border dark:border-subtle-border-dark">
                       Note: {med.notes}
                     </Text>
                   ) : null}
 
                   {/* Scheduled Times */}
                   <View className="flex-row flex-wrap items-center gap-2 mt-1">
-                    <Text className="text-sm font-bold text-umber">
+                    <Text className="text-sm font-bold text-umber dark:text-umber-dark">
                       Times:
                     </Text>
                     {med.schedules.map((s) => (
                       <View
                         key={s.id}
-                        className="flex-row items-center gap-1 px-3 py-1.5 rounded-xl border border-subtle-border bg-surface">
-                        <Ionicons name="time-outline" size={14} color="#3D5A50" />
-                        <Text className="text-[13px] font-bold text-sage">
+                        className="flex-row items-center gap-1 px-3 py-1.5 rounded-xl border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark">
+                        <Ionicons name="time-outline" size={14} color={colors.primary} />
+                        <Text className="text-[13px] font-bold text-sage dark:text-sage-dark">
                           {formatTo12Hour(s.reminderTime)} ({s.timeSlot.charAt(0).toUpperCase() + s.timeSlot.slice(1)})
                         </Text>
                       </View>
@@ -238,8 +250,8 @@ export default function MedicinesScreen() {
             />
 
             {logs.length === 0 ? (
-              <View className="p-4 rounded-2xl items-center bg-surface border border-subtle-border">
-                <Text className="text-[15px] font-medium text-center leading-[22px] text-umber">
+              <View className="p-4 rounded-2xl items-center bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark">
+                <Text className="text-[15px] font-medium text-center leading-[22px] text-umber dark:text-umber-dark">
                   No doses logged yet. As you mark medicines taken on the Today screen, they will appear here.
                 </Text>
               </View>
@@ -253,18 +265,18 @@ export default function MedicinesScreen() {
                 return (
                   <View
                     key={log.id}
-                    className="flex-row justify-between items-center p-3.5 rounded-2xl border border-subtle-border bg-card mb-2.5">
+                    className="flex-row justify-between items-center p-3.5 rounded-2xl border border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark mb-2.5">
                     <View className="flex-row items-center gap-3">
                       <Ionicons
                         name={isTaken ? 'checkmark-circle' : 'close-circle-outline'}
                         size={22}
-                        color={isTaken ? '#2E684D' : '#A8631E'}
+                        color={isTaken ? colors.success : colors.warning}
                       />
                       <View>
-                        <Text className="text-base font-bold capitalize text-charcoal">
+                        <Text className="text-base font-bold capitalize text-charcoal dark:text-charcoal-dark">
                           Dose marked as {log.status}
                         </Text>
-                        <Text className="text-sm font-semibold text-umber">
+                        <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
                           {dateStr} at {timeStr}
                         </Text>
                       </View>

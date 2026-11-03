@@ -10,12 +10,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MedicineWithSchedules, TimeSlot } from '@/types';
 import { PrimaryButton, ScrollableTimePickerModal } from './ui';
 import { medicineService } from '@/services/medicine.service';
 import { useAppStore } from '@/store/app.store';
 import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
+import { useTheme } from '@/hooks/use-theme';
 
 interface AddMedicineModalProps {
   visible: boolean;
@@ -39,6 +41,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
   initialMode = 'existing',
   initialMedicine,
 }) => {
+  const colors = useTheme();
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
 
   const isEditing = !!initialMedicine;
@@ -70,24 +73,27 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
         setDosage(initialMedicine.dosage);
         setInstructions(initialMedicine.instructions || '');
         setNotes(initialMedicine.notes || '');
+
         if (initialMedicine.schedules && initialMedicine.schedules.length > 0) {
-          const firstSched = initialMedicine.schedules[0];
-          setTimeSlot(firstSched.timeSlot);
-          setReminderTime(formatTo12Hour(firstSched.reminderTime));
+          const s = initialMedicine.schedules[0];
+          setTimeSlot(s.timeSlot);
+          setReminderTime(formatTo12Hour(s.reminderTime));
         } else {
           setTimeSlot('morning');
           setReminderTime(TIME_SLOT_DEFAULTS.morning);
         }
       } else {
+        // Load cabinet medicines to check if user has existing ones
         medicineService.getAllMedicines().then((meds) => {
           setExistingMedicines(meds);
-          if (meds.length > 0) {
-            setMode(initialMode);
+          if (meds.length > 0 && initialMode === 'existing') {
+            setMode('existing');
             setSelectedMedicineId(meds[0].id);
           } else {
             setMode('new');
           }
         });
+
         setName('');
         setDosage('');
         setInstructions('');
@@ -96,7 +102,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
         setReminderTime(TIME_SLOT_DEFAULTS.morning);
       }
     }
-  }, [visible, initialMode, initialMedicine]);
+  }, [visible, initialMedicine, initialMode]);
 
   const handleTimeSlotSelect = (slot: TimeSlot) => {
     setTimeSlot(slot);
@@ -110,11 +116,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
     // Edit Mode
     if (isEditing && initialMedicine) {
       if (!name.trim()) {
-        setError('Please enter the medicine name');
+        setError('Please enter medicine name');
         return;
       }
       if (!dosage.trim()) {
-        setError('Please enter the dosage (e.g. 500 mg or 1 tablet)');
+        setError('Please enter dosage');
         return;
       }
 
@@ -141,7 +147,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
         onClose();
       } catch (e) {
         console.error(e);
-        setError("Couldn't update medicine. Please try again.");
+        setError("Couldn't save changes. Please try again.");
       } finally {
         setIsSubmitting(false);
       }
@@ -174,11 +180,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
       }
     } else {
       if (!name.trim()) {
-        setError('Please enter the medicine name');
+        setError('Please enter medicine name');
         return;
       }
       if (!dosage.trim()) {
-        setError('Please enter the dosage (e.g. 500 mg or 1 tablet)');
+        setError('Please enter dosage (e.g. 500 mg)');
         return;
       }
 
@@ -214,7 +220,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
     Alert.alert(
       'Delete Medicine',
-      `Are you sure you want to remove ${initialMedicine.name}? All scheduled alarms for this medicine will be cancelled.`,
+      `Are you sure you want to delete ${initialMedicine.name}? All scheduled reminders for this medicine will also be cancelled.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -240,11 +246,19 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      statusBarTranslucent={true}
+      onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 bg-black/60 justify-end">
-        <View className="rounded-t-3xl border-t-[1.5px] border-x-[1.5px] border-subtle-border bg-card max-h-[92%]">
+        <SafeAreaView
+          edges={['bottom']}
+          style={{ backgroundColor: colors.backgroundCard }}
+          className="rounded-t-3xl border-t-[1.5px] border-x-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark max-h-[92%]">
           <ScrollView
             contentContainerClassName="px-3.5 py-4 pb-12 gap-3"
             keyboardShouldPersistTaps="handled"
@@ -253,19 +267,19 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
             {/* Header */}
             <View className="flex-row justify-between items-start mb-0.5">
               <View className="flex-1 pr-2">
-                <Text className="text-xl font-bold text-charcoal">
+                <Text className="text-xl font-bold text-charcoal dark:text-charcoal-dark">
                   {isEditing
                     ? 'Edit Medicine'
                     : mode === 'existing'
                     ? "Add to Today's Routine"
                     : 'Add New Medicine'}
                 </Text>
-                <Text className="text-sm font-medium text-umber mt-0.5">
+                <Text className="text-sm font-medium text-umber dark:text-umber-dark mt-0.5">
                   {isEditing
                     ? 'Update prescription details or reminder time.'
                     : mode === 'existing'
                     ? 'Choose an existing medicine to schedule.'
-                    : 'Schedule a new prescription alarm.'}
+                    : 'Schedule a new prescription reminder.'}
                 </Text>
               </View>
               <Pressable
@@ -273,24 +287,24 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                 className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
                 accessibilityLabel="Close modal"
                 accessibilityRole="button">
-                <Ionicons name="close" size={24} color="#6B645D" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
 
             {/* Mode Switcher (Visible only when adding and user already has medicines) */}
             {!isEditing && existingMedicines.length > 0 && (
-              <View className="flex-row rounded-xl bg-surface p-1 border border-subtle-border">
+              <View className="flex-row rounded-xl bg-surface dark:bg-surface-dark p-1 border border-subtle-border dark:border-subtle-border-dark">
                 <Pressable
                   onPress={() => {
                     setMode('existing');
                     setError(null);
                   }}
                   className={`flex-1 min-h-[44px] rounded-lg items-center justify-center ${
-                    mode === 'existing' ? 'bg-sage' : 'bg-transparent'
+                    mode === 'existing' ? 'bg-sage dark:bg-sage-dark' : 'bg-transparent'
                   }`}>
                   <Text
                     className={`text-[15px] font-bold ${
-                      mode === 'existing' ? 'text-white' : 'text-charcoal'
+                      mode === 'existing' ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
                     }`}>
                     From Cabinet
                   </Text>
@@ -301,11 +315,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                     setError(null);
                   }}
                   className={`flex-1 min-h-[44px] rounded-lg items-center justify-center ${
-                    mode === 'new' ? 'bg-sage' : 'bg-transparent'
+                    mode === 'new' ? 'bg-sage dark:bg-sage-dark' : 'bg-transparent'
                   }`}>
                   <Text
                     className={`text-[15px] font-bold ${
-                      mode === 'new' ? 'text-white' : 'text-charcoal'
+                      mode === 'new' ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
                     }`}>
                     New Medicine
                   </Text>
@@ -314,15 +328,15 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
             )}
 
             {error ? (
-              <View className="p-2.5 rounded-xl border border-brick bg-brick-tint">
-                <Text className="text-xs font-semibold text-brick">{error}</Text>
+              <View className="p-2.5 rounded-xl border border-brick dark:border-brick-dark bg-brick-tint dark:bg-brick-dark-tint">
+                <Text className="text-xs font-semibold text-brick dark:text-brick-dark">{error}</Text>
               </View>
             ) : null}
 
             {/* Existing Medicine Selection Mode */}
             {!isEditing && mode === 'existing' ? (
               <View className="gap-2.5">
-                <Text className="text-xs font-bold text-charcoal px-0.5">
+                <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                   Select Medicine from Cabinet
                 </Text>
                 <View className="gap-2">
@@ -334,19 +348,19 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                         onPress={() => setSelectedMedicineId(med.id)}
                         className={`p-3 rounded-xl border-[1.5px] ${
                           isSelected
-                            ? 'bg-sage-tint border-sage'
-                            : 'bg-surface border-subtle-border active:bg-card-selected'
+                            ? 'bg-sage-tint dark:bg-sage-dark-tint border-sage dark:border-sage-dark'
+                            : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
                         }`}>
                         <View className="flex-row items-center justify-between">
                           <View className="flex-1 gap-0.5">
-                            <Text className="text-base font-bold text-charcoal">
+                            <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                               {med.name}
                             </Text>
-                            <Text className="text-sm font-semibold text-terracotta">
+                            <Text className="text-sm font-semibold text-terracotta dark:text-terracotta-dark">
                               {med.dosage}
                             </Text>
                             {med.instructions ? (
-                              <Text className="text-xs text-umber mt-0.5">
+                              <Text className="text-xs text-umber dark:text-umber-dark mt-0.5">
                                 {med.instructions}
                               </Text>
                             ) : null}
@@ -354,7 +368,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                           <Ionicons
                             name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
                             size={22}
-                            color={isSelected ? '#3D5A50' : '#8E867E'}
+                            color={isSelected ? colors.primary : colors.textMuted}
                           />
                         </View>
                       </Pressable>
@@ -366,52 +380,52 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
               /* New / Edit Medicine Form */
               <View className="gap-3">
                 <View className="gap-1">
-                  <Text className="text-xs font-bold text-charcoal px-0.5">
+                  <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                     Medicine Name
                   </Text>
                   <TextInput
-                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 text-base text-charcoal font-medium"
+                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 text-base text-charcoal dark:text-charcoal-dark font-medium"
                     placeholder="e.g. Paracetamol, Losartan"
-                    placeholderTextColor="#8E867E"
+                    placeholderTextColor={colors.textMuted}
                     value={name}
                     onChangeText={setName}
                   />
                 </View>
 
                 <View className="gap-1">
-                  <Text className="text-xs font-bold text-charcoal px-0.5">
+                  <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                     Dosage
                   </Text>
                   <TextInput
-                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 text-base text-charcoal font-medium"
+                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 text-base text-charcoal dark:text-charcoal-dark font-medium"
                     placeholder="e.g. 500 mg, 1 tablet"
-                    placeholderTextColor="#8E867E"
+                    placeholderTextColor={colors.textMuted}
                     value={dosage}
                     onChangeText={setDosage}
                   />
                 </View>
 
                 <View className="gap-1">
-                  <Text className="text-xs font-bold text-charcoal px-0.5">
+                  <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                     Instructions (Optional)
                   </Text>
                   <TextInput
-                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 text-sm text-charcoal font-medium"
+                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 text-sm text-charcoal dark:text-charcoal-dark font-medium"
                     placeholder="e.g. Take after breakfast with water"
-                    placeholderTextColor="#8E867E"
+                    placeholderTextColor={colors.textMuted}
                     value={instructions}
                     onChangeText={setInstructions}
                   />
                 </View>
 
                 <View className="gap-1">
-                  <Text className="text-xs font-bold text-charcoal px-0.5">
+                  <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                     Notes (Optional)
                   </Text>
                   <TextInput
-                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 text-sm text-charcoal font-medium"
+                    className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 text-sm text-charcoal dark:text-charcoal-dark font-medium"
                     placeholder="e.g. Maintenance for blood pressure"
-                    placeholderTextColor="#8E867E"
+                    placeholderTextColor={colors.textMuted}
                     value={notes}
                     onChangeText={setNotes}
                   />
@@ -421,7 +435,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
             {/* Time Slot Selector */}
             <View className="gap-1">
-              <Text className="text-xs font-bold text-charcoal px-0.5">
+              <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                 Time of Day
               </Text>
               {/* Row 1: Morning & Afternoon */}
@@ -435,18 +449,18 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                       onPress={() => handleTimeSlotSelect(slot)}
                       className={`flex-1 py-2.5 px-2 rounded-xl border-[1.5px] items-center justify-center ${
                         isSelected
-                          ? 'bg-sage border-sage active:bg-[#2E443C]'
-                          : 'bg-surface border-subtle-border active:bg-card-selected'
+                          ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                          : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
                       }`}>
                       <Text
                         className={`text-sm font-bold ${
-                          isSelected ? 'text-white' : 'text-charcoal'
+                          isSelected ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
                         }`}>
                         {slotLabel}
                       </Text>
                       <Text
                         className={`text-[11px] mt-0.5 font-medium ${
-                          isSelected ? 'text-white/85' : 'text-umber'
+                          isSelected ? 'text-white/85' : 'text-umber dark:text-umber-dark'
                         }`}>
                         {TIME_SLOT_DEFAULTS[slot]}
                       </Text>
@@ -466,18 +480,18 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                       onPress={() => handleTimeSlotSelect(slot)}
                       className={`flex-1 py-2.5 px-2 rounded-xl border-[1.5px] items-center justify-center ${
                         isSelected
-                          ? 'bg-sage border-sage active:bg-[#2E443C]'
-                          : 'bg-surface border-subtle-border active:bg-card-selected'
+                          ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                          : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
                       }`}>
                       <Text
                         className={`text-sm font-bold ${
-                          isSelected ? 'text-white' : 'text-charcoal'
+                          isSelected ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
                         }`}>
                         {slotLabel}
                       </Text>
                       <Text
                         className={`text-[11px] mt-0.5 font-medium ${
-                          isSelected ? 'text-white/85' : 'text-umber'
+                          isSelected ? 'text-white/85' : 'text-umber dark:text-umber-dark'
                         }`}>
                         {TIME_SLOT_DEFAULTS[slot]}
                       </Text>
@@ -489,23 +503,23 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
 
             {/* Reminder Time */}
             <View className="gap-1">
-              <Text className="text-xs font-bold text-charcoal px-0.5">
+              <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                 Exact Reminder Time
               </Text>
               <Pressable
                 onPress={() => setIsTimePickerOpen(true)}
-                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 flex-row items-center justify-between active:bg-card-selected"
+                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 flex-row items-center justify-between active:bg-card-selected"
                 accessibilityRole="button"
                 accessibilityLabel={`Reminder time: ${reminderTime}. Tap to choose a different time.`}>
                 <View className="flex-row items-center gap-2">
-                  <Ionicons name="time-outline" size={18} color="#3D5A50" />
-                  <Text className="text-base font-bold text-charcoal">
+                  <Ionicons name="time-outline" size={18} color={colors.primary} />
+                  <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                     {reminderTime || '8:00 AM'}
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-1">
-                  <Text className="text-xs font-semibold text-umber">Change</Text>
-                  <Ionicons name="chevron-forward" size={15} color="#8E867E" />
+                  <Text className="text-xs font-semibold text-umber dark:text-umber-dark">Change</Text>
+                  <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
                 </View>
               </Pressable>
             </View>
@@ -554,7 +568,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
               )}
             </View>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </KeyboardAvoidingView>
 
       {/* Scrollable Time Picker Modal */}

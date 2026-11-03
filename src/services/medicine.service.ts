@@ -10,12 +10,20 @@ import { INotificationProvider, notificationProvider } from '@/notifications';
 import { Medicine, MedicineDoseStatus, MedicineWithSchedules, TimeSlot, TodayMedicineDose } from '@/types';
 
 export class MedicineService {
+  private customNotifier?: INotificationProvider;
+
   constructor(
     private readonly medicineRepo: IMedicineRepository = new MedicineRepository(),
     private readonly scheduleRepo: IMedicineScheduleRepository = new MedicineScheduleRepository(),
     private readonly logRepo: IMedicineLogRepository = new MedicineLogRepository(),
-    private readonly notifier: INotificationProvider = notificationProvider
-  ) {}
+    notifier?: INotificationProvider
+  ) {
+    this.customNotifier = notifier;
+  }
+
+  private get notifier(): INotificationProvider {
+    return this.customNotifier ?? notificationProvider;
+  }
 
   async getAllMedicines(): Promise<MedicineWithSchedules[]> {
     return this.medicineRepo.getAllWithSchedules(true);
@@ -63,7 +71,7 @@ export class MedicineService {
 
       // Schedule local notification
       try {
-        await this.notifier.scheduleMedicineReminder({
+        await this.notifier?.scheduleMedicineReminder({
           medicineId,
           scheduleId: schedule.id,
           medicineName: medicine.name,
@@ -105,7 +113,7 @@ export class MedicineService {
     });
 
     try {
-      await this.notifier.scheduleMedicineReminder({
+      await this.notifier?.scheduleMedicineReminder({
         medicineId: medicine.id,
         scheduleId: schedule.id,
         medicineName: medicine.name,
@@ -133,7 +141,11 @@ export class MedicineService {
 
     if (newSchedules && newSchedules.length > 0) {
       // Cancel previous notifications
-      await this.notifier.cancelAllMedicineReminders(medicine.id);
+      try {
+        await this.notifier?.cancelAllMedicineReminders(medicine.id);
+      } catch (err) {
+        console.warn('Failed to cancel notifications for updated medicine:', err);
+      }
       // Replace schedules
       await this.scheduleRepo.deleteByMedicineId(medicine.id);
 
@@ -150,7 +162,7 @@ export class MedicineService {
 
         // Reschedule notification
         try {
-          await this.notifier.scheduleMedicineReminder({
+          await this.notifier?.scheduleMedicineReminder({
             medicineId: medicine.id,
             scheduleId: schedule.id,
             medicineName: medicine.name,
@@ -170,7 +182,11 @@ export class MedicineService {
 
   async deleteMedicine(medicineId: string): Promise<void> {
     // 1. Cancel notifications
-    await this.notifier.cancelAllMedicineReminders(medicineId);
+    try {
+      await this.notifier?.cancelAllMedicineReminders(medicineId);
+    } catch (err) {
+      console.warn('Failed to cancel notifications for deleted medicine:', err);
+    }
     // 2. Delete schedules & medicine from SQLite
     await this.scheduleRepo.deleteByMedicineId(medicineId);
     await this.medicineRepo.delete(medicineId);
@@ -216,7 +232,7 @@ export class MedicineService {
         for (const schedule of med.schedules) {
           if (schedule.isActive) {
             try {
-              await this.notifier.scheduleMedicineReminder({
+              await this.notifier?.scheduleMedicineReminder({
                 medicineId: med.id,
                 scheduleId: schedule.id,
                 medicineName: med.name,
@@ -240,5 +256,3 @@ export class MedicineService {
 }
 
 export const medicineService = new MedicineService();
-
-

@@ -19,13 +19,20 @@ import {
   PrimaryButton,
   ScrollableTimePickerModal,
   BPSkeleton,
+  HealthBarGraph,
+  PaginationControls,
 } from '@/components/ui';
 import { AddEditBPModal } from '@/components/add-edit-bp-modal';
+import { ExportReportModal } from '@/components/export-report-modal';
 import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
 import { getBPCategory, getBPCategoryStyle } from '@/utils/bp.utils';
+import { useTheme } from '@/hooks/use-theme';
+
+const PAGE_SIZE = 10;
 
 export default function BloodPressureScreen() {
   const router = useRouter();
+  const colors = useTheme();
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
@@ -36,10 +43,14 @@ export default function BloodPressureScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<BloodPressureLog | null>(null);
   const [timePickerSlot, setTimePickerSlot] = useState<'morning' | 'evening' | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
@@ -66,6 +77,7 @@ export default function BloodPressureScreen() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    setCurrentPage(1);
     loadData();
   };
 
@@ -107,28 +119,64 @@ export default function BloodPressureScreen() {
   const latestCategory = latestLog ? getBPCategory(latestLog.systolic, latestLog.diastolic) : null;
   const latestStyle = latestCategory ? getBPCategoryStyle(latestCategory) : null;
 
+  const totalPages = Math.ceil(logs.length / PAGE_SIZE) || 1;
+  const paginatedLogs = logs.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-canvas">
+    <SafeAreaView
+      edges={['top', 'left', 'right']}
+      style={{ backgroundColor: colors.background }}
+      className="flex-1 bg-canvas dark:bg-canvas-dark">
       <ScrollView
         contentContainerClassName="px-4 pb-12"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }>
         {/* Header & Settings Button */}
         <View className="pt-3 pb-3 flex-row justify-between items-start">
           <View className="gap-1 flex-1 pr-2">
-            <Text className="text-[28px] font-bold text-charcoal">
+            <Text className="text-[28px] font-bold text-charcoal dark:text-charcoal-dark">
               Blood Pressure
             </Text>
-            <Text className="text-base font-semibold text-umber">
+            <Text className="text-base font-semibold text-umber dark:text-umber-dark">
               Track daily systolic and diastolic pressure for Mom.
             </Text>
           </View>
-          <Pressable
-            onPress={() => router.push('/settings')}
-            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface border border-subtle-border active:bg-card-selected"
-            accessibilityRole="button"
-            accessibilityLabel="Open settings and display theme">
-            <Ionicons name="settings-outline" size={22} color="#3D5A50" />
-          </Pressable>
+
+          <View className="flex-row items-center gap-2">
+            {/* Export PDF Button */}
+            <Pressable
+              onPress={() => setIsExportModalOpen(true)}
+              className="min-h-[44px] px-3 flex-row items-center gap-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
+              accessibilityRole="button"
+              accessibilityLabel="Export blood pressure log as PDF">
+              <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+              <Text className="text-xs font-bold text-sage dark:text-sage-dark">Export PDF</Text>
+            </Pressable>
+
+            {/* Settings Button */}
+            <Pressable
+              onPress={() => router.push('/settings')}
+              className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
+              accessibilityRole="button"
+              accessibilityLabel="Open settings and display theme">
+              <Ionicons name="settings-outline" size={22} color={colors.primary} />
+            </Pressable>
+          </View>
         </View>
 
         {loading ? (
@@ -149,19 +197,28 @@ export default function BloodPressureScreen() {
           </View>
         ) : (
           <>
-            {/* Daily BP Alarms Card */}
-            <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 my-2 gap-3">
+            {/* -------------------------------------------------------------- */}
+            {/* Interactive Bar Graph with Timeframes & Weekly/Monthly Averages */}
+            {/* -------------------------------------------------------------- */}
+            <HealthBarGraph
+              type="bp"
+              bpLogs={logs}
+              title="Blood Pressure Trends"
+            />
+
+            {/* Daily BP Reminders Card */}
+            <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
               <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                  <View className="w-10 h-10 rounded-xl bg-terracotta-tint border border-terracotta/20 items-center justify-center">
-                    <Ionicons name="alarm-outline" size={20} color="#C46849" />
+                  <View className="w-10 h-10 rounded-xl bg-terracotta-tint dark:bg-terracotta-dark-tint border border-terracotta/20 dark:border-terracotta-dark/20 items-center justify-center">
+                    <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-base font-bold text-charcoal">
+                    <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                       BP Check Reminders
                     </Text>
-                    <Text className="text-xs font-semibold text-umber">
-                      Gentle alarms remind Mom to rest and record
+                    <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
+                      Gentle reminders notify Mom to rest and record
                     </Text>
                   </View>
                 </View>
@@ -174,15 +231,15 @@ export default function BloodPressureScreen() {
                   return (
                     <View
                       key={rem.id}
-                      className="flex-row items-center justify-between p-3.5 rounded-xl bg-surface border border-subtle-border">
+                      className="flex-row items-center justify-between p-3.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark">
                       <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                         <Ionicons
                           name={isMorning ? 'sunny-outline' : 'moon-outline'}
                           size={22}
-                          color={isMorning ? '#A8631E' : '#3D5A50'}
+                          color={isMorning ? colors.warning : colors.primary}
                         />
                         <View>
-                          <Text className="text-[15px] font-bold text-charcoal">
+                          <Text className="text-[15px] font-bold text-charcoal dark:text-charcoal-dark">
                             {isMorning ? 'Morning Check' : 'Evening Check'}
                           </Text>
                           <Pressable
@@ -190,8 +247,8 @@ export default function BloodPressureScreen() {
                             className="min-h-[44px] flex-row items-center gap-1.5 py-1 px-1 rounded-lg"
                             accessibilityRole="button"
                             accessibilityLabel={`Change ${rem.label} time, currently ${formattedTime}`}>
-                            <Ionicons name="time-outline" size={16} color="#3D5A50" />
-                            <Text className="text-sm font-bold text-sage underline">
+                            <Ionicons name="time-outline" size={16} color={colors.primary} />
+                            <Text className="text-sm font-bold text-sage dark:text-sage-dark underline">
                               {formattedTime}
                             </Text>
                           </Pressable>
@@ -200,7 +257,7 @@ export default function BloodPressureScreen() {
                       <Switch
                         value={rem.enabled}
                         onValueChange={(val) => handleToggleReminder(rem.id, val)}
-                        trackColor={{ false: '#DDD7CD', true: '#3D5A50' }}
+                        trackColor={{ false: '#DDD7CD', true: colors.primary }}
                         thumbColor={rem.enabled ? '#FFFFFF' : '#FAF7F2'}
                         accessibilityLabel={`Toggle ${rem.label}`}
                       />
@@ -212,11 +269,11 @@ export default function BloodPressureScreen() {
 
             {/* Latest Reading Card */}
             {latestLog && latestStyle ? (
-              <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 my-2 gap-3">
+              <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2">
-                    <MaterialCommunityIcons name="heart-pulse" size={22} color="#3D5A50" />
-                    <Text className="text-sm font-bold text-umber uppercase tracking-wider">
+                    <MaterialCommunityIcons name="heart-pulse" size={22} color={colors.primary} />
+                    <Text className="text-sm font-bold text-umber dark:text-umber-dark uppercase tracking-wider">
                       Latest Reading
                     </Text>
                   </View>
@@ -230,39 +287,39 @@ export default function BloodPressureScreen() {
 
                 {/* Big BP Display */}
                 <View className="flex-row items-baseline gap-2">
-                  <Text className="text-[38px] font-bold text-charcoal leading-[44px]">
+                  <Text className="text-[38px] font-bold text-charcoal dark:text-charcoal-dark leading-[44px]">
                     {latestLog.systolic}/{latestLog.diastolic}
                   </Text>
-                  <Text className="text-base font-semibold text-umber">
+                  <Text className="text-base font-semibold text-umber dark:text-umber-dark">
                     mmHg
                   </Text>
                 </View>
 
                 {/* Details Footer */}
-                <View className="flex-row items-center justify-between pt-1 border-t border-subtle-border">
+                <View className="flex-row items-center justify-between pt-1 border-t border-subtle-border dark:border-subtle-border-dark">
                   <View className="flex-row items-center gap-3">
                     {latestLog.pulse ? (
                       <View className="flex-row items-center gap-1">
-                        <Ionicons name="pulse" size={16} color="#6B645D" />
-                        <Text className="text-sm font-semibold text-umber">
+                        <Ionicons name="pulse" size={16} color={colors.textSecondary} />
+                        <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
                           {latestLog.pulse} bpm
                         </Text>
                       </View>
                     ) : null}
                     <View className="flex-row items-center gap-1">
-                      <Ionicons name="time-outline" size={16} color="#6B645D" />
-                      <Text className="text-sm font-semibold text-umber">
+                      <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+                      <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
                         {formatTo12Hour(new Date(latestLog.loggedAt))}
                       </Text>
                     </View>
                   </View>
                   <Pressable
                     onPress={() => handleOpenEdit(latestLog)}
-                    className="min-h-[44px] min-w-[64px] flex-row items-center justify-center gap-1 py-1 px-3 rounded-xl active:bg-surface"
+                    className="min-h-[44px] min-w-[64px] flex-row items-center justify-center gap-1 py-1 px-3 rounded-xl active:bg-surface dark:active:bg-surface-dark"
                     accessibilityRole="button"
                     accessibilityLabel="Edit latest reading">
-                    <Ionicons name="pencil-outline" size={16} color="#3D5A50" />
-                    <Text className="text-sm font-bold text-sage">Edit</Text>
+                    <Ionicons name="pencil" size={18} color={colors.primary} />
+                    <Text className="text-sm font-bold text-sage dark:text-sage-dark">Edit</Text>
                   </Pressable>
                 </View>
               </View>
@@ -275,7 +332,7 @@ export default function BloodPressureScreen() {
               rightElement={
                 <PrimaryButton
                   label="Log Reading"
-                  icon={<Ionicons name="add" size={18} color="#3D5A50" />}
+                  icon={<Ionicons name="add-sharp" size={21} color={colors.primary} />}
                   variant="outline"
                   onPress={handleOpenAdd}
                   className="min-h-[44px] px-4"
@@ -293,7 +350,7 @@ export default function BloodPressureScreen() {
               />
             ) : (
               <View className="gap-2.5">
-                {logs.map((log) => {
+                {paginatedLogs.map((log) => {
                   const category = getBPCategory(log.systolic, log.diastolic);
                   const style = getBPCategoryStyle(category);
                   const dateObj = new Date(log.loggedAt);
@@ -307,15 +364,15 @@ export default function BloodPressureScreen() {
                     <Pressable
                       key={log.id}
                       onPress={() => handleOpenEdit(log)}
-                      className="min-h-[64px] rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-2.5 active:bg-card-selected"
+                      className="min-h-[64px] rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 gap-2.5 active:bg-card-selected"
                       accessibilityRole="button"
                       accessibilityLabel={`Reading ${log.systolic} over ${log.diastolic} mmHg on ${formattedDate}. Tap to edit.`}>
                       <View className="flex-row items-center justify-between">
                         <View className="flex-row items-baseline gap-2">
-                          <Text className="text-2xl font-bold text-charcoal">
+                          <Text className="text-2xl font-bold text-charcoal dark:text-charcoal-dark">
                             {log.systolic}/{log.diastolic}
                           </Text>
-                          <Text className="text-xs font-bold text-umber">
+                          <Text className="text-xs font-bold text-umber dark:text-umber-dark">
                             mmHg
                           </Text>
                         </View>
@@ -330,31 +387,40 @@ export default function BloodPressureScreen() {
                       {/* Meta row: Pulse, Arm, Date/Time */}
                       <View className="flex-row items-center justify-between">
                         <View className="flex-row items-center gap-2.5 flex-wrap">
-                          <Text className="text-sm font-semibold text-umber">
+                          <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
                             {formattedDate} at {formattedTime}
                           </Text>
                           {log.arm ? (
-                            <Text className="text-sm font-semibold text-umber capitalize">
+                            <Text className="text-sm font-semibold text-umber dark:text-umber-dark capitalize">
                               ({log.arm} arm)
                             </Text>
                           ) : null}
                           {log.pulse ? (
-                            <Text className="text-sm font-semibold text-umber">
+                            <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
                               · {log.pulse} bpm
                             </Text>
                           ) : null}
                         </View>
-                        <Ionicons name="pencil-outline" size={16} color="#6B645D" />
+                        <Ionicons name="pencil" size={18} color={colors.textSecondary} />
                       </View>
 
                       {log.notes ? (
-                        <Text className="text-sm text-charcoal bg-surface px-3 py-2 rounded-xl border border-subtle-border mt-0.5">
+                        <Text className="text-sm text-charcoal dark:text-charcoal-dark bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-subtle-border dark:border-subtle-border-dark mt-0.5">
                           Note: {log.notes}
                         </Text>
                       ) : null}
                     </Pressable>
                   );
                 })}
+
+                {/* Pagination Controls */}
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={logs.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setCurrentPage}
+                />
               </View>
             )}
           </>
@@ -381,6 +447,13 @@ export default function BloodPressureScreen() {
         }
         onClose={() => setTimePickerSlot(null)}
         onConfirm={handleUpdateTime}
+      />
+
+      {/* Export Report Modal */}
+      <ExportReportModal
+        visible={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        initialType="bp"
       />
     </SafeAreaView>
   );
