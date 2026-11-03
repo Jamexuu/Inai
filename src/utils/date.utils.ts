@@ -138,3 +138,69 @@ export function parse12HourParts(timeStr?: string | null): {
 }
 
 
+
+/**
+ * Formats a Date object to local "YYYY-MM-DD"
+ */
+export function formatDateToYMD(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = (date.getMonth() + 1).toString().padStart(2, '0');
+  const d = date.getDate().toString().padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function getYesterdayYMD(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return formatDateToYMD(d);
+}
+
+export function getTwoDaysAgoYMD(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 2);
+  return formatDateToYMD(d);
+}
+
+export function formatYMDToDisplay(ymd: string): string {
+  if (!ymd) return '';
+  const today = formatDateToYMD();
+  const yesterday = getYesterdayYMD();
+  if (ymd === today) return 'Today';
+  if (ymd === yesterday) return 'Yesterday';
+
+  const parts = ymd.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: year !== new Date().getFullYear() ? 'numeric' : undefined,
+      });
+    }
+  }
+  return ymd;
+}
+
+export function formatYMDToFullFriendly(ymd: string): string {
+  if (!ymd) return '';
+  const parts = ymd.split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  }
+  return ymd;
+}

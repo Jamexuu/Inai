@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Meal, MealType } from '@/types';
 import { mealService } from '@/services/meal.service';
@@ -17,6 +18,7 @@ import { useAppStore } from '@/store/app.store';
 import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
 import { PrimaryButton } from './ui/primary-button';
 import { ScrollableTimePickerModal } from './ui/scrollable-time-picker-modal';
+import { useTheme } from '@/hooks/use-theme';
 
 interface AddEditMealModalProps {
   visible: boolean;
@@ -45,6 +47,7 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
   onSuccess,
   initialMeal,
 }) => {
+  const colors = useTheme();
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
 
   const isEditing = !!initialMeal;
@@ -157,11 +160,15 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
       visible={visible}
       animationType="slide"
       transparent={true}
+      statusBarTranslucent={true}
       onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 bg-black/60 justify-end">
-        <View className="rounded-t-3xl border-t-[1.5px] border-x-[1.5px] border-subtle-border bg-card max-h-[92%]">
+        <SafeAreaView
+          edges={['bottom']}
+          style={{ backgroundColor: colors.backgroundCard }}
+          className="rounded-t-3xl border-t-[1.5px] border-x-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark max-h-[92%]">
           <ScrollView
             contentContainerClassName="px-3.5 py-4 pb-12 gap-3"
             keyboardShouldPersistTaps="handled"
@@ -170,10 +177,10 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
             {/* Header */}
             <View className="flex-row justify-between items-start mb-0.5">
               <View className="flex-1 pr-2">
-                <Text className="text-xl font-bold text-charcoal">
+                <Text className="text-xl font-bold text-charcoal dark:text-charcoal-dark">
                   {isEditing ? 'Edit Meal' : 'Add New Meal'}
                 </Text>
-                <Text className="text-sm font-medium text-umber mt-0.5">
+                <Text className="text-sm font-medium text-umber dark:text-umber-dark mt-0.5">
                   {isEditing
                     ? 'Update routine, meal name, or notes.'
                     : 'Schedule a calm, daily meal routine.'}
@@ -182,130 +189,98 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
               <Pressable
                 onPress={onClose}
                 className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
-                accessibilityRole="button"
-                accessibilityLabel="Close modal">
-                <Ionicons name="close" size={24} color="#6B645D" />
+                accessibilityLabel="Close modal"
+                accessibilityRole="button">
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </Pressable>
             </View>
 
             {error ? (
-              <View className="p-2.5 rounded-xl border border-brick bg-brick-tint">
-                <Text className="text-xs font-semibold text-brick">{error}</Text>
+              <View className="p-2.5 rounded-xl border border-brick dark:border-brick-dark bg-brick-tint dark:bg-brick-dark-tint">
+                <Text className="text-xs font-semibold text-brick dark:text-brick-dark">{error}</Text>
               </View>
             ) : null}
 
-            {/* Meal Category Selector */}
-            <View className="gap-1">
-              <Text className="text-xs font-bold text-charcoal px-0.5">
+            {/* Meal Type Quick Selector */}
+            <View className="gap-1.5">
+              <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                 Meal Category
               </Text>
-              <View className="gap-1.5">
-                {/* Row 1: Breakfast & Lunch */}
-                <View className="flex-row gap-2">
-                  {MEAL_TYPES.slice(0, 2).map((t) => {
-                    const isSelected = mealType === t.type;
-                    return (
-                      <Pressable
-                        key={t.type}
-                        onPress={() => handleMealTypeSelect(t.type, t.label, t.defaultTime)}
-                        className={`flex-1 py-2.5 px-3 rounded-xl border-[1.5px] flex-row items-center justify-center gap-2 ${
-                          isSelected
-                            ? 'bg-sage border-sage'
-                            : 'bg-surface border-subtle-border active:bg-card-selected'
+              <View className="flex-row gap-2">
+                {MEAL_TYPES.map((cfg) => {
+                  const isSelected = mealType === cfg.type;
+                  return (
+                    <Pressable
+                      key={cfg.type}
+                      onPress={() => handleMealTypeSelect(cfg.type, cfg.label, cfg.defaultTime)}
+                      className={`flex-1 py-2 rounded-xl border-[1.5px] items-center justify-center gap-1 ${
+                        isSelected
+                          ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                          : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark'
+                      }`}>
+                      <MaterialCommunityIcons
+                        name={cfg.icon}
+                        size={20}
+                        color={isSelected ? '#FFFFFF' : colors.primary}
+                      />
+                      <Text
+                        className={`text-xs font-bold ${
+                          isSelected ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
                         }`}>
-                        <MaterialCommunityIcons
-                          name={t.icon}
-                          size={18}
-                          color={isSelected ? '#FFFFFF' : '#3D5A50'}
-                        />
-                        <Text
-                          className={`text-xs font-bold ${
-                            isSelected ? 'text-white' : 'text-charcoal'
-                          }`}>
-                          {t.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-
-                {/* Row 2: Dinner & Snack */}
-                <View className="flex-row gap-2">
-                  {MEAL_TYPES.slice(2, 4).map((t) => {
-                    const isSelected = mealType === t.type;
-                    return (
-                      <Pressable
-                        key={t.type}
-                        onPress={() => handleMealTypeSelect(t.type, t.label, t.defaultTime)}
-                        className={`flex-1 py-2.5 px-3 rounded-xl border-[1.5px] flex-row items-center justify-center gap-2 ${
-                          isSelected
-                            ? 'bg-sage border-sage'
-                            : 'bg-surface border-subtle-border active:bg-card-selected'
-                        }`}>
-                        <MaterialCommunityIcons
-                          name={t.icon}
-                          size={18}
-                          color={isSelected ? '#FFFFFF' : '#3D5A50'}
-                        />
-                        <Text
-                          className={`text-xs font-bold ${
-                            isSelected ? 'text-white' : 'text-charcoal'
-                          }`}>
-                          {t.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                        {cfg.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
-            {/* Meal Label Input */}
+            {/* Label Input */}
             <View className="gap-1">
-              <Text className="text-xs font-bold text-charcoal px-0.5">
-                Meal Name
+              <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
+                Meal Description / Label
               </Text>
               <TextInput
-                className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 text-base text-charcoal font-medium"
-                placeholder="e.g. Breakfast, Morning Snack"
-                placeholderTextColor="#8E867E"
+                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 text-base text-charcoal dark:text-charcoal-dark font-medium"
+                placeholder="e.g. Oatmeal with fruit"
+                placeholderTextColor={colors.textMuted}
                 value={label}
                 onChangeText={setLabel}
               />
             </View>
 
-            {/* Target Time Picker */}
+            {/* Target Time */}
             <View className="gap-1">
-              <Text className="text-xs font-bold text-charcoal px-0.5">
-                Usual Meal Time
+              <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
+                Target Time
               </Text>
               <Pressable
                 onPress={() => setIsTimePickerOpen(true)}
-                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3.5 flex-row items-center justify-between active:bg-card-selected"
+                className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 flex-row items-center justify-between active:bg-card-selected"
                 accessibilityRole="button"
-                accessibilityLabel={`Usual meal time: ${targetTime}. Tap to choose a different time.`}>
+                accessibilityLabel={`Meal time: ${targetTime}. Tap to change.`}>
                 <View className="flex-row items-center gap-2">
-                  <Ionicons name="time-outline" size={18} color="#3D5A50" />
-                  <Text className="text-base font-bold text-charcoal">
+                  <Ionicons name="time-outline" size={18} color={colors.primary} />
+                  <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                     {targetTime}
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-1">
-                  <Text className="text-xs font-semibold text-umber">Change</Text>
-                  <Ionicons name="chevron-forward" size={15} color="#8E867E" />
+                  <Text className="text-xs font-semibold text-umber dark:text-umber-dark">Change</Text>
+                  <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
                 </View>
               </Pressable>
             </View>
 
             {/* Notes */}
             <View className="gap-1">
-              <Text className="text-xs font-bold text-charcoal px-0.5">
+              <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                 Notes (Optional)
               </Text>
               <TextInput
-                className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border bg-surface px-3 text-sm text-charcoal font-medium"
-                placeholder="e.g. Low salt, Take vitamins after"
-                placeholderTextColor="#8E867E"
+                className="min-h-[46px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3 text-sm text-charcoal dark:text-charcoal-dark font-medium"
+                placeholder="e.g. Low sodium, take medicine after"
+                placeholderTextColor={colors.textMuted}
                 value={notes}
                 onChangeText={setNotes}
               />
@@ -319,7 +294,7 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
                     ? 'Saving...'
                     : isEditing
                     ? 'Save Changes'
-                    : 'Add Meal'
+                    : 'Save Meal Routine'
                 }
                 variant="primary"
                 disabled={isSubmitting}
@@ -353,7 +328,7 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
               )}
             </View>
           </ScrollView>
-        </View>
+        </SafeAreaView>
       </KeyboardAvoidingView>
 
       {/* Scrollable Time Picker Modal */}
@@ -366,4 +341,3 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
     </Modal>
   );
 };
-
