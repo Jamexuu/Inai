@@ -3,9 +3,11 @@ import {
   ScrollView,
   Text,
   View,
+  Pressable,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
@@ -23,6 +25,7 @@ import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { formatTo12Hour } from '@/utils/date.utils';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
@@ -31,11 +34,13 @@ export default function HomeScreen() {
   const [meals, setMeals] = useState<TodayMealDose[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   // Load today's doses and meals from SQLite
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
+    setError(null);
     try {
       const todayPrefix = new Date().toISOString().substring(0, 10);
       const [todayDoses, todayMeals] = await Promise.all([
@@ -46,6 +51,7 @@ export default function HomeScreen() {
       setMeals(todayMeals);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
+      setError("We couldn't load today's routine. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -140,18 +146,41 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerClassName="px-4 pb-12"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-        {/* Header Greeting */}
-        <View className="pt-3 pb-2 gap-1">
-          <Text className="text-[28px] font-bold tracking-wide text-charcoal">
-            {greeting}
-          </Text>
-          <Text className="text-base font-medium text-umber">
-            {formattedDate}
-          </Text>
+        {/* Header Greeting & Settings Button */}
+        <View className="pt-3 pb-2 flex-row justify-between items-start">
+          <View className="gap-1 flex-1 pr-2">
+            <Text className="text-[28px] font-bold tracking-wide text-charcoal">
+              {greeting}
+            </Text>
+            <Text className="text-base font-semibold text-umber">
+              {formattedDate}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface border border-subtle-border active:bg-card-selected"
+            accessibilityRole="button"
+            accessibilityLabel="Open settings and display theme">
+            <Ionicons name="settings-outline" size={22} color="#3D5A50" />
+          </Pressable>
         </View>
 
         {loading ? (
           <HomeSkeleton />
+        ) : error ? (
+          <View className="rounded-2xl border-[1.5px] border-brick/40 bg-brick-tint/50 p-5 my-4 gap-3 items-center">
+            <Ionicons name="alert-circle-outline" size={32} color="#A33B32" />
+            <Text className="text-lg font-bold text-charcoal text-center">
+              {error}
+            </Text>
+            <PrimaryButton
+              label="Try Again"
+              icon={<Ionicons name="refresh" size={18} color="#FFFFFF" />}
+              variant="primary"
+              onPress={loadData}
+              className="min-h-[44px] min-w-[140px]"
+            />
+          </View>
         ) : (
           <>
             {/* Next Important Action Hero Card */}
@@ -163,13 +192,13 @@ export default function HomeScreen() {
                     <Text className="text-[13px] font-bold tracking-wider text-sage uppercase">
                       {nextPendingDose.timeSlot} Routine
                     </Text>
-                    <View className="bg-sage/15 px-2 py-0.5 rounded-md">
-                      <Text className="text-[11px] font-bold text-sage">
+                    <View className="bg-sage/15 px-2.5 py-1 rounded-xl">
+                      <Text className="text-xs font-bold text-sage">
                         {sameSlotPendingDoses.length} Meds
                       </Text>
                     </View>
                   </View>
-                  <View className="flex-row items-center gap-1 shrink-0 bg-sage/10 px-2 py-0.5 rounded-lg">
+                  <View className="flex-row items-center gap-1 shrink-0 bg-sage/10 px-2.5 py-1 rounded-xl">
                     <Ionicons name="time-outline" size={14} color="#3D5A50" />
                     <Text className="text-sm font-bold text-sage">
                       {formatTo12Hour(nextPendingDose.reminderTime)}
@@ -182,7 +211,7 @@ export default function HomeScreen() {
                 </Text>
 
                 {/* List of medicines to take together */}
-                <View className="gap-2 my-1 bg-card/80 p-3 rounded-xl border border-subtle-border">
+                <View className="gap-2 my-1 bg-card/90 p-3.5 rounded-xl border border-subtle-border">
                   {sameSlotPendingDoses.map((dose) => (
                     <View key={dose.scheduleId} className="flex-row items-center justify-between gap-2">
                       <View className="flex-row items-center gap-2 flex-1 min-w-0 pr-1">
@@ -204,6 +233,7 @@ export default function HomeScreen() {
                     icon={<Ionicons name="checkmark-done" size={20} color="#FFFFFF" />}
                     variant="primary"
                     onPress={() => handleTakeAllSameSlot(sameSlotPendingDoses)}
+                    className="min-h-[48px]"
                   />
                 </View>
               </View>
@@ -216,8 +246,8 @@ export default function HomeScreen() {
                       NEXT DOSE
                     </Text>
                   </View>
-                  <View className="flex-row items-center gap-1 shrink-0">
-                    <Ionicons name="time-outline" size={16} color="#3D5A50" />
+                  <View className="flex-row items-center gap-1 shrink-0 bg-sage/10 px-2.5 py-1 rounded-xl">
+                    <Ionicons name="time-outline" size={15} color="#3D5A50" />
                     <Text className="text-base font-bold text-sage">
                       {formatTo12Hour(nextPendingDose.reminderTime)}
                     </Text>
@@ -226,7 +256,7 @@ export default function HomeScreen() {
                 <Text className="text-2xl font-bold text-charcoal">
                   {nextPendingDose.medicineName}
                 </Text>
-                <Text className="text-lg font-semibold text-terracotta">
+                <Text className="text-lg font-bold text-terracotta">
                   {nextPendingDose.dosage}
                 </Text>
                 {nextPendingDose.instructions ? (
@@ -243,6 +273,7 @@ export default function HomeScreen() {
                     icon={<Ionicons name="checkmark" size={20} color="#FFFFFF" />}
                     variant="primary"
                     onPress={() => handleMarkTaken(nextPendingDose)}
+                    className="min-h-[48px]"
                   />
                 </View>
               </View>
@@ -270,7 +301,7 @@ export default function HomeScreen() {
                   icon={<Ionicons name="add" size={18} color="#3D5A50" />}
                   variant="outline"
                   onPress={() => setIsAddModalOpen(true)}
-                  className="min-h-[40px] px-3.5"
+                  className="min-h-[44px] px-4"
                 />
               }
             />

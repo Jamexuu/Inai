@@ -24,20 +24,24 @@ export const MealCard: React.FC<MealCardProps> = ({
   const renderMealIcon = () => {
     switch (meal.mealType) {
       case 'breakfast':
-        return <MaterialCommunityIcons name="coffee-outline" size={26} color="#3D5A50" />;
+        return <MaterialCommunityIcons name="coffee-outline" size={24} color="#3D5A50" />;
       case 'lunch':
-        return <MaterialCommunityIcons name="food-apple-outline" size={26} color="#3D5A50" />;
+        return <MaterialCommunityIcons name="food-apple-outline" size={24} color="#3D5A50" />;
       case 'dinner':
-        return <MaterialCommunityIcons name="silverware-fork-knife" size={26} color="#3D5A50" />;
+        return <MaterialCommunityIcons name="silverware-fork-knife" size={24} color="#3D5A50" />;
       default:
-        return <MaterialCommunityIcons name="cookie-outline" size={26} color="#3D5A50" />;
+        return <MaterialCommunityIcons name="cookie-outline" size={24} color="#3D5A50" />;
     }
   };
 
+  const cardStyle = isCompleted
+    ? 'bg-herbal-tint/30 border border-herbal/30'
+    : 'bg-card border-[1.5px] border-subtle-border';
+
   return (
-    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-3.5 mb-2">
+    <View className={`rounded-2xl p-4 mb-2.5 ${cardStyle}`}>
       <View className="flex-row items-center gap-3">
-        <View className="w-11 h-11 rounded-xl border border-subtle-border bg-surface items-center justify-center">
+        <View className="w-12 h-12 rounded-xl border border-subtle-border bg-surface items-center justify-center">
           {renderMealIcon()}
         </View>
         <View className="flex-1">
@@ -46,39 +50,39 @@ export const MealCard: React.FC<MealCardProps> = ({
           </Text>
           <View className="flex-row items-center gap-1 mt-0.5">
             <Ionicons name="time-outline" size={14} color="#6B645D" />
-            <Text className="text-sm font-medium text-umber">
+            <Text className="text-sm font-semibold text-umber">
               {formatTo12Hour(meal.targetTime)}
             </Text>
           </View>
         </View>
-        <View className="flex-row items-center gap-1.5">
+        <View className="flex-row items-center gap-1">
           <StatusBadge status={meal.status} type="meal" />
           {onEdit ? (
             <Pressable
               onPress={() => onEdit(meal)}
-              className="p-1.5 rounded-lg active:bg-surface"
+              className="min-w-[44px] min-h-[44px] items-center justify-center rounded-xl active:bg-surface"
               accessibilityRole="button"
-              accessibilityLabel={`Edit ${meal.label}`}>
+              accessibilityLabel={`Edit ${meal.label} time`}>
               <Ionicons name="pencil-outline" size={18} color="#6B645D" />
             </Pressable>
           ) : null}
         </View>
       </View>
 
-      <View className="mt-2">
+      <View className="mt-2.5">
         {!isCompleted ? (
           <PrimaryButton
             label="Mark Done"
             icon={<Ionicons name="checkmark" size={18} color="#3D5A50" />}
             variant="outline"
             onPress={() => onMarkDone(meal)}
-            className="min-h-[46px]"
+            className="min-h-[48px]"
           />
         ) : (
           <View className="flex-row items-center justify-between pt-1">
-            <View className="flex-row items-center gap-1.5">
+            <View className="flex-row items-center gap-1.5 flex-1 pr-2">
               <Ionicons name="checkmark-circle" size={18} color="#2E684D" />
-              <Text className="text-[15px] font-semibold text-herbal">
+              <Text className="text-[15px] font-bold text-herbal">
                 Meal completed
               </Text>
             </View>
@@ -86,7 +90,7 @@ export const MealCard: React.FC<MealCardProps> = ({
               label="Reset"
               variant="ghost"
               onPress={() => onMarkSkipped(meal)}
-              className="min-h-[36px] px-2.5"
+              className="min-h-[44px] min-w-[70px] px-3"
             />
           </View>
         )}

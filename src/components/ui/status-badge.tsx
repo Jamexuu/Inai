@@ -10,7 +10,7 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   let label = 'Due';
-  let iconName: keyof typeof Ionicons.glyphMap = 'ellipse-outline';
+  let iconName: keyof typeof Ionicons.glyphMap = 'time-outline';
   let badgeClasses = 'bg-amber-tint border-amber';
   let textClasses = 'text-amber';
   let iconColor = '#A8631E';
@@ -24,7 +24,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   } else if (status === 'skipped') {
     label = 'Skipped';
     iconName = 'close-circle-outline';
-    badgeClasses = 'bg-card-selected border-subtle-border';
+    badgeClasses = 'bg-surface border-subtle-border';
     textClasses = 'text-umber';
     iconColor = '#6B645D';
   } else if (status === 'missed') {
@@ -37,11 +37,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
   return (
     <View
-      className={`flex-row items-center px-3 py-1.5 rounded-full border gap-1.5 self-start ${badgeClasses}`}
+      className={`flex-row items-center px-3 py-1.5 rounded-xl border gap-1.5 self-start ${badgeClasses}`}
       accessibilityRole="text"
       accessibilityLabel={`Status: ${label}`}>
       <Ionicons name={iconName} size={15} color={iconColor} />
-      <Text className={`text-sm font-semibold tracking-wide ${textClasses}`}>
+      <Text className={`text-sm font-bold tracking-wide ${textClasses}`}>
         {label}
       </Text>
     </View>

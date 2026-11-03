@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
 import { MedicineWithSchedules, MedicineLog } from '@/types';
@@ -22,6 +23,7 @@ import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { formatTo12Hour } from '@/utils/date.utils';
 
 export default function MedicinesScreen() {
+  const router = useRouter();
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
@@ -30,11 +32,13 @@ export default function MedicinesScreen() {
   const [logs, setLogs] = useState<MedicineLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedMedicineForEdit, setSelectedMedicineForEdit] = useState<MedicineWithSchedules | null>(null);
 
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
+    setError(null);
     try {
       const [allMeds, recentLogs] = await Promise.all([
         medicineService.getAllMedicines(),
@@ -44,6 +48,7 @@ export default function MedicinesScreen() {
       setLogs(recentLogs);
     } catch (err) {
       console.error('Error loading medicines list:', err);
+      setError("We couldn't load your medicines list. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -61,12 +66,12 @@ export default function MedicinesScreen() {
 
   const handleDeleteMedicine = (med: MedicineWithSchedules) => {
     Alert.alert(
-      'Delete Medicine',
+      'Remove Medicine',
       `Are you sure you want to remove ${med.name}? Reminders for this medicine will also be cancelled.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             await medicineService.deleteMedicine(med.id);
@@ -82,18 +87,41 @@ export default function MedicinesScreen() {
       <ScrollView
         contentContainerClassName="px-4 pb-12"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}>
-        {/* Screen Header */}
-        <View className="pt-3 pb-3 gap-1">
-          <Text className="text-[28px] font-bold text-charcoal">
-            My Medicines
-          </Text>
-          <Text className="text-base font-normal text-umber">
-            All daily maintenance prescriptions and intake history.
-          </Text>
+        {/* Screen Header & Settings Button */}
+        <View className="pt-3 pb-3 flex-row justify-between items-start">
+          <View className="gap-1 flex-1 pr-2">
+            <Text className="text-[28px] font-bold text-charcoal">
+              Daily Medicines
+            </Text>
+            <Text className="text-base font-semibold text-umber">
+              All registered prescriptions and recent intake records for Mom.
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push('/settings')}
+            className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface border border-subtle-border active:bg-card-selected"
+            accessibilityRole="button"
+            accessibilityLabel="Open settings and display theme">
+            <Ionicons name="settings-outline" size={22} color="#3D5A50" />
+          </Pressable>
         </View>
 
         {loading ? (
           <MedicinesSkeleton />
+        ) : error ? (
+          <View className="rounded-2xl border-[1.5px] border-brick/40 bg-brick-tint/50 p-5 my-4 gap-3 items-center">
+            <Ionicons name="alert-circle-outline" size={32} color="#A33B32" />
+            <Text className="text-lg font-bold text-charcoal text-center">
+              {error}
+            </Text>
+            <PrimaryButton
+              label="Try Again"
+              icon={<Ionicons name="refresh" size={18} color="#FFFFFF" />}
+              variant="primary"
+              onPress={loadData}
+              className="min-h-[44px] min-w-[140px]"
+            />
+          </View>
         ) : (
           <>
             {/* Action Bar */}
@@ -106,12 +134,13 @@ export default function MedicinesScreen() {
                   setSelectedMedicineForEdit(null);
                   setIsAddModalOpen(true);
                 }}
+                className="min-h-[50px]"
               />
             </View>
 
             {/* Medicines List */}
             <SectionHeader
-              title="Active Prescriptions"
+              title="Registered Medicines"
               subtitle={`${medicines.length} medicine${medicines.length === 1 ? '' : 's'} registered`}
             />
 
@@ -119,7 +148,7 @@ export default function MedicinesScreen() {
               <EmptyState
                 iconName="pill"
                 title="No medicines found"
-                description="Keep your medicines organized with exact reminder times."
+                description="Keep daily medicines organized with exact reminder times for Mom."
                 actionLabel="Add Medicine"
                 onAction={() => {
                   setSelectedMedicineForEdit(null);
@@ -130,37 +159,37 @@ export default function MedicinesScreen() {
               medicines.map((med) => (
                 <View
                   key={med.id}
-                  className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 gap-2">
+                  className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 mb-3 gap-2.5">
                   <View className="flex-row justify-between items-start">
                     <View className="gap-0.5 flex-1 pr-2">
                       <Text className="text-[22px] font-bold text-charcoal">
                         {med.name}
                       </Text>
-                      <Text className="text-[17px] font-semibold text-terracotta">
+                      <Text className="text-[17px] font-bold text-terracotta">
                         {med.dosage}
                       </Text>
                     </View>
-                    <View className="flex-row items-center gap-1">
+                    <View className="flex-row items-center gap-1.5">
                       <Pressable
                         onPress={() => {
                           setSelectedMedicineForEdit(med);
                           setIsAddModalOpen(true);
                         }}
-                        className="min-h-[48px] px-2.5 flex-row items-center gap-1 active:opacity-70"
+                        className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-surface border border-subtle-border"
                         accessibilityRole="button"
                         accessibilityLabel={`Edit ${med.name}`}>
                         <Ionicons name="pencil-outline" size={16} color="#3D5A50" />
-                        <Text className="text-[15px] font-semibold text-sage">
+                        <Text className="text-[14px] font-bold text-sage">
                           Edit
                         </Text>
                       </Pressable>
                       <Pressable
                         onPress={() => handleDeleteMedicine(med)}
-                        className="min-h-[48px] px-2 flex-row items-center gap-1 active:opacity-70"
+                        className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-brick-tint/40 border border-brick/30"
                         accessibilityRole="button"
-                        accessibilityLabel={`Delete ${med.name}`}>
-                        <Ionicons name="trash-outline" size={16} color="#B84A39" />
-                        <Text className="text-[15px] font-semibold text-brick">
+                        accessibilityLabel={`Remove ${med.name}`}>
+                        <Ionicons name="trash-outline" size={16} color="#A33B32" />
+                        <Text className="text-[14px] font-bold text-brick">
                           Delete
                         </Text>
                       </Pressable>
@@ -168,7 +197,7 @@ export default function MedicinesScreen() {
                   </View>
 
                   {med.instructions ? (
-                    <View className="flex-row items-center gap-1.5">
+                    <View className="flex-row items-center gap-1.5 mt-0.5">
                       <Ionicons name="information-circle-outline" size={16} color="#6B645D" />
                       <Text className="text-[15px] font-medium text-umber flex-1">
                         {med.instructions}
@@ -177,22 +206,22 @@ export default function MedicinesScreen() {
                   ) : null}
 
                   {med.notes ? (
-                    <Text className="text-sm italic text-muted-gray">
+                    <Text className="text-sm font-medium text-umber bg-surface px-3 py-1.5 rounded-lg border border-subtle-border">
                       Note: {med.notes}
                     </Text>
                   ) : null}
 
                   {/* Scheduled Times */}
                   <View className="flex-row flex-wrap items-center gap-2 mt-1">
-                    <Text className="text-sm font-semibold text-umber">
+                    <Text className="text-sm font-bold text-umber">
                       Times:
                     </Text>
                     {med.schedules.map((s) => (
                       <View
                         key={s.id}
-                        className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg border border-subtle-border bg-surface">
-                        <Ionicons name="time-outline" size={13} color="#3D5A50" />
-                        <Text className="text-[13px] font-semibold text-sage">
+                        className="flex-row items-center gap-1 px-3 py-1.5 rounded-xl border border-subtle-border bg-surface">
+                        <Ionicons name="time-outline" size={14} color="#3D5A50" />
+                        <Text className="text-[13px] font-bold text-sage">
                           {formatTo12Hour(s.reminderTime)} ({s.timeSlot.charAt(0).toUpperCase() + s.timeSlot.slice(1)})
                         </Text>
                       </View>
@@ -209,9 +238,9 @@ export default function MedicinesScreen() {
             />
 
             {logs.length === 0 ? (
-              <View className="p-4 rounded-xl items-center bg-surface">
-                <Text className="text-[15px] text-center leading-[22px] text-umber">
-                  No doses logged yet. As you mark medicines taken on the Home screen, they will appear here.
+              <View className="p-4 rounded-2xl items-center bg-surface border border-subtle-border">
+                <Text className="text-[15px] font-medium text-center leading-[22px] text-umber">
+                  No doses logged yet. As you mark medicines taken on the Today screen, they will appear here.
                 </Text>
               </View>
             ) : (
@@ -224,7 +253,7 @@ export default function MedicinesScreen() {
                 return (
                   <View
                     key={log.id}
-                    className="flex-row justify-between items-center p-3 rounded-xl border border-subtle-border bg-card mb-2">
+                    className="flex-row justify-between items-center p-3.5 rounded-2xl border border-subtle-border bg-card mb-2.5">
                     <View className="flex-row items-center gap-3">
                       <Ionicons
                         name={isTaken ? 'checkmark-circle' : 'close-circle-outline'}
@@ -232,10 +261,10 @@ export default function MedicinesScreen() {
                         color={isTaken ? '#2E684D' : '#A8631E'}
                       />
                       <View>
-                        <Text className="text-base font-semibold capitalize text-charcoal">
+                        <Text className="text-base font-bold capitalize text-charcoal">
                           Dose marked as {log.status}
                         </Text>
-                        <Text className="text-sm text-umber">
+                        <Text className="text-sm font-semibold text-umber">
                           {dateStr} at {timeStr}
                         </Text>
                       </View>

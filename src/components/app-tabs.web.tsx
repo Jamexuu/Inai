@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Tabs,
   TabList,
@@ -7,7 +8,8 @@ import {
   TabListProps,
 } from 'expo-router/ui';
 import { Pressable, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/theme';
 
 export default function AppTabs() {
   return (
@@ -16,10 +18,29 @@ export default function AppTabs() {
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Today</TabButton>
+            <TabButton icon="calendar-outline" activeIcon="calendar">
+              Today
+            </TabButton>
           </TabTrigger>
           <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>Medicines</TabButton>
+            <TabButton icon="medkit-outline" activeIcon="medkit">
+              Medicines
+            </TabButton>
+          </TabTrigger>
+          <TabTrigger name="meals" href="/meals" asChild>
+            <TabButton icon="restaurant-outline" activeIcon="restaurant">
+              Meals
+            </TabButton>
+          </TabTrigger>
+          <TabTrigger name="bp" href="/bp" asChild>
+            <TabButton icon="heart-outline" activeIcon="heart">
+              BP
+            </TabButton>
+          </TabTrigger>
+          <TabTrigger name="history" href="/history" asChild>
+            <TabButton icon="time-outline" activeIcon="time">
+              History
+            </TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -27,16 +48,42 @@ export default function AppTabs() {
   );
 }
 
-export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+interface TabButtonProps extends TabTriggerSlotProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  activeIcon: keyof typeof Ionicons.glyphMap;
+}
+
+export function TabButton({
+  children,
+  isFocused,
+  icon,
+  activeIcon,
+  ...props
+}: TabButtonProps) {
+  // Explicitly light for clarity and contrast
+  const lightColors = Colors.light;
+
   return (
-    <Pressable {...props} className="active:opacity-70">
+    <Pressable
+      {...props}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: !!isFocused }}
+      accessibilityLabel={String(children)}
+      className="active:opacity-75">
       <View
-        className={`py-2 px-4 rounded-xl ${
-          isFocused ? 'bg-sage' : 'bg-surface'
+        className={`min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 transition-all duration-200 ease-out ${
+          isFocused
+            ? 'bg-sage shadow-sm'
+            : 'bg-[#F2ECE4]'
         }`}>
+        <Ionicons
+          name={isFocused ? activeIcon : icon}
+          size={16}
+          color={isFocused ? '#FFFFFF' : lightColors.textSecondary}
+        />
         <Text
-          className={`text-[15px] font-semibold ${
-            isFocused ? 'text-white' : 'text-umber'
+          className={`text-sm font-bold transition-colors duration-200 ${
+            isFocused ? 'text-white' : 'text-[#282522]'
           }`}>
           {children}
         </Text>
@@ -46,17 +93,21 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 }
 
 export function CustomTabList(props: TabListProps) {
+  const lightColors = Colors.light;
+
   return (
-    <View className="absolute bottom-0 w-full p-3 justify-center items-center flex-row">
-      <View className="py-2 px-4 rounded-2xl border-[1.5px] border-subtle-border bg-card flex-row items-center justify-between flex-grow max-w-[500px] shadow-sm">
-        <View className="flex-row items-center gap-1.5">
-          <MaterialCommunityIcons name="pill" size={20} color="#3D5A50" />
-          <Text className="text-lg font-bold tracking-wide text-charcoal">
+    <View className="absolute bottom-0 w-full p-3 justify-center items-center flex-row pointer-events-auto">
+      <View className="py-2.5 px-4 rounded-2xl border-[1.5px] border-[#E5DED4] bg-[#FFFFFF] flex-row items-center justify-between flex-grow max-w-[620px]">
+        <View className="flex-row items-center gap-2 pl-1 pr-3">
+          <View className="w-7 h-7 rounded-lg bg-sage/15 items-center justify-center">
+            <Ionicons name="heart" size={16} color={lightColors.primary} />
+          </View>
+          <Text className="text-base font-bold tracking-wide text-charcoal">
             Inai
           </Text>
         </View>
 
-        <View className="flex-row gap-2">
+        <View className="flex-row flex-wrap gap-1.5">
           {props.children}
         </View>
       </View>
