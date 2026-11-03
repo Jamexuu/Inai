@@ -24,9 +24,10 @@ export interface INotificationProvider {
   scheduleBPReminder(params: { id: string; label: string; reminderTime: string }): Promise<string>;
   cancelBPReminder(id: string): Promise<void>;
   displayAlarmNow(medicineName?: string, dosage?: string): Promise<string>;
+  displayReminderNow?(medicineName?: string, dosage?: string): Promise<string>;
   triggerTestAlarm(medicineName?: string, delaySeconds?: number): Promise<string>;
+  triggerTestReminder?(medicineName?: string, delaySeconds?: number): Promise<string>;
   checkAlarmPermissions(): Promise<{ exactAlarmPermitted: boolean; notificationsPermitted: boolean }>;
   openAlarmSettings(): Promise<void>;
   openNotificationSettings(): Promise<void>;
 }
-

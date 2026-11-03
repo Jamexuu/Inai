@@ -3,10 +3,21 @@ import notifee, {
   TimestampTrigger,
   TriggerType,
   AlarmType,
+  AndroidImportance,
+  AndroidCategory,
 } from '@notifee/react-native';
-import { medicineService } from '@/services/medicine.service';
-import { mealService } from '@/services/meal.service';
 import { useAppStore } from '@/store/app.store';
+
+// Helper lazy loaders to prevent circular dependencies
+const getMedicineService = async () => {
+  const mod = await import('@/services/medicine.service');
+  return mod.medicineService;
+};
+
+const getMealService = async () => {
+  const mod = await import('@/services/meal.service');
+  return mod.mealService;
+};
 
 /**
  * Handle notification background and foreground actions
@@ -22,12 +33,16 @@ export function setupNotificationEventHandlers(): () => void {
       if (actionId === 'mark_taken') {
         const medicineId = detail.notification?.data?.medicineId as string;
         const scheduleId = detail.notification?.data?.scheduleId as string;
+        const reminderTime = detail.notification?.data?.reminderTime as string;
         if (medicineId) {
           try {
+            const medicineService = await getMedicineService();
+            const todayStr = new Date().toISOString().substring(0, 10);
+            const timeStr = reminderTime || new Date().toISOString().substring(11, 16);
             await medicineService.markDose({
               medicineId,
               scheduleId,
-              scheduledTime: new Date().toISOString().substring(11, 16),
+              scheduledTime: `${todayStr} ${timeStr}`,
               status: 'taken',
             });
           } catch (e) {
@@ -42,6 +57,7 @@ export function setupNotificationEventHandlers(): () => void {
         const mealType = detail.notification?.data?.mealType as any;
         if (mealType) {
           try {
+            const mealService = await getMealService();
             await mealService.markMeal({
               mealType,
               status: 'completed',
@@ -71,7 +87,16 @@ export function setupNotificationEventHandlers(): () => void {
             {
               ...detail.notification,
               id: `snooze_${Date.now()}`,
-              title: `(Snoozed) ${detail.notification.title || 'Reminder'}`,
+              title: `(10m Follow-up) ${detail.notification.title || 'Medicine Reminder'}`,
+              android: {
+                ...detail.notification.android,
+                channelId: detail.notification.android?.channelId || 'inai_medicine_reminders',
+                importance: AndroidImportance.HIGH,
+                category: AndroidCategory.REMINDER,
+                loopSound: false,
+                ongoing: false,
+                autoCancel: true,
+              },
             },
             snoozeTrigger
           );
@@ -93,12 +118,16 @@ export function setupNotificationEventHandlers(): () => void {
       if (actionId === 'mark_taken') {
         const medicineId = detail.notification?.data?.medicineId as string;
         const scheduleId = detail.notification?.data?.scheduleId as string;
+        const reminderTime = detail.notification?.data?.reminderTime as string;
         if (medicineId) {
           try {
+            const medicineService = await getMedicineService();
+            const todayStr = new Date().toISOString().substring(0, 10);
+            const timeStr = reminderTime || new Date().toISOString().substring(11, 16);
             await medicineService.markDose({
               medicineId,
               scheduleId,
-              scheduledTime: new Date().toISOString().substring(11, 16),
+              scheduledTime: `${todayStr} ${timeStr}`,
               status: 'taken',
             });
             useAppStore.getState().triggerRefresh();
@@ -114,6 +143,7 @@ export function setupNotificationEventHandlers(): () => void {
         const mealType = detail.notification?.data?.mealType as any;
         if (mealType) {
           try {
+            const mealService = await getMealService();
             await mealService.markMeal({
               mealType,
               status: 'completed',
@@ -144,7 +174,16 @@ export function setupNotificationEventHandlers(): () => void {
             {
               ...detail.notification,
               id: `snooze_${Date.now()}`,
-              title: `(Snoozed) ${detail.notification.title || 'Reminder'}`,
+              title: `(10m Follow-up) ${detail.notification.title || 'Medicine Reminder'}`,
+              android: {
+                ...detail.notification.android,
+                channelId: detail.notification.android?.channelId || 'inai_medicine_reminders',
+                importance: AndroidImportance.HIGH,
+                category: AndroidCategory.REMINDER,
+                loopSound: false,
+                ongoing: false,
+                autoCancel: true,
+              },
             },
             snoozeTrigger
           );

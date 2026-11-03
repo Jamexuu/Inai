@@ -8,11 +8,19 @@ import { Meal, MealLog, MealStatus, MealType, TodayMealDose } from '@/types';
 import { INotificationProvider, notificationProvider } from '@/notifications';
 
 export class MealService {
+  private customNotifier?: INotificationProvider;
+
   constructor(
     private readonly mealRepo: IMealRepository = new MealRepository(),
     private readonly mealLogRepo: IMealLogRepository = new MealLogRepository(),
-    private readonly notifier: INotificationProvider = notificationProvider
-  ) {}
+    notifier?: INotificationProvider
+  ) {
+    this.customNotifier = notifier;
+  }
+
+  private get notifier(): INotificationProvider {
+    return this.customNotifier ?? notificationProvider;
+  }
 
   async getAllMeals(): Promise<Meal[]> {
     return this.mealRepo.getAll();
@@ -60,7 +68,7 @@ export class MealService {
     });
 
     try {
-      await this.notifier.scheduleMealReminder({
+      await this.notifier?.scheduleMealReminder({
         id: created.id,
         mealType: created.mealType,
         label: created.label,
@@ -77,9 +85,9 @@ export class MealService {
     const updated = await this.mealRepo.update(meal);
 
     try {
-      await this.notifier.cancelMealReminder(meal.id);
+      await this.notifier?.cancelMealReminder(meal.id);
       if (meal.isActive) {
-        await this.notifier.scheduleMealReminder({
+        await this.notifier?.scheduleMealReminder({
           id: meal.id,
           mealType: meal.mealType,
           label: meal.label,
@@ -95,7 +103,7 @@ export class MealService {
 
   async deleteMeal(mealId: string): Promise<void> {
     try {
-      await this.notifier.cancelMealReminder(mealId);
+      await this.notifier?.cancelMealReminder(mealId);
     } catch (e) {
       console.warn('Failed to cancel meal reminder:', e);
     }
@@ -107,7 +115,7 @@ export class MealService {
     for (const m of meals) {
       if (m.isActive) {
         try {
-          await this.notifier.scheduleMealReminder({
+          await this.notifier?.scheduleMealReminder({
             id: m.id,
             mealType: m.mealType,
             label: m.label,

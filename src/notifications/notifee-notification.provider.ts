@@ -10,14 +10,18 @@ import { Platform } from 'react-native';
 import { INotificationProvider, MedicineReminderPayload } from './notification-provider.interface';
 import { parseTo24Hour } from '@/utils/date.utils';
 
-const ALARM_CHANNEL_ID = 'inai_medicine_alarms';
-const ALARM_CHANNEL_NAME = 'Medicine Alarms (Loud)';
+export const MEDICINE_CHANNEL_ID = 'inai_medicine_reminders';
+export const MEDICINE_CHANNEL_NAME = 'Medicine Reminders';
 
-const MEAL_CHANNEL_ID = 'inai_meal_alarms';
-const MEAL_CHANNEL_NAME = 'Meal Alarms';
+export const MEAL_CHANNEL_ID = 'inai_meal_reminders';
+export const MEAL_CHANNEL_NAME = 'Meal Reminders';
 
-const BP_CHANNEL_ID = 'inai_bp_alarms';
-const BP_CHANNEL_NAME = 'Blood Pressure Alarms';
+export const BP_CHANNEL_ID = 'inai_bp_reminders';
+export const BP_CHANNEL_NAME = 'Blood Pressure Reminders';
+
+// Compatibility alias
+export const ALARM_CHANNEL_ID = MEDICINE_CHANNEL_ID;
+export const ALARM_CHANNEL_NAME = MEDICINE_CHANNEL_NAME;
 
 export class NotifeeNotificationProvider implements INotificationProvider {
   private channelsCreated = false;
@@ -26,40 +30,40 @@ export class NotifeeNotificationProvider implements INotificationProvider {
     if (this.channelsCreated || Platform.OS !== 'android') return;
 
     try {
-      // 1. Medicine Alarm Channel (High priority, looping sound, vibration)
+      // 1. Medicine Reminder Channel (Standard notification banner, single chime, gentle vibration)
       await notifee.createChannel({
-        id: ALARM_CHANNEL_ID,
-        name: ALARM_CHANNEL_NAME,
-        description: 'Loud insistent alarm reminders for daily medicine intake',
+        id: MEDICINE_CHANNEL_ID,
+        name: MEDICINE_CHANNEL_NAME,
+        description: 'Gentle daily reminders for medicine intake with action buttons',
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
-        vibrationPattern: [300, 500, 300, 500, 300, 500],
-        bypassDnd: true,
+        vibrationPattern: [250, 250],
+        bypassDnd: false,
       });
 
-      // 2. Meal Alarm Channel
+      // 2. Meal Reminder Channel
       await notifee.createChannel({
         id: MEAL_CHANNEL_ID,
         name: MEAL_CHANNEL_NAME,
-        description: 'Reminders for daily meals (Breakfast, Lunch, Dinner, Snack)',
+        description: 'Gentle reminders for daily meal routines',
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
-        vibrationPattern: [300, 400, 300, 400],
-        bypassDnd: true,
+        vibrationPattern: [250, 250],
+        bypassDnd: false,
       });
 
-      // 3. Blood Pressure Alarm Channel
+      // 3. Blood Pressure Reminder Channel
       await notifee.createChannel({
         id: BP_CHANNEL_ID,
         name: BP_CHANNEL_NAME,
-        description: 'Reminders to check and monitor daily blood pressure',
+        description: 'Gentle reminders to check and record daily blood pressure',
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
-        vibrationPattern: [300, 400, 300, 400],
-        bypassDnd: true,
+        vibrationPattern: [250, 250],
+        bypassDnd: false,
       });
 
       this.channelsCreated = true;
@@ -99,7 +103,7 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       triggerDate.setDate(triggerDate.getDate() + 1);
     }
 
-    // Schedule using Android's AlarmManager for exact wake-up in idle mode
+    // Schedule exact wake-up for offline reliability
     const trigger: TimestampTrigger = {
       type: TriggerType.TIMESTAMP,
       timestamp: triggerDate.getTime(),
@@ -114,21 +118,22 @@ export class NotifeeNotificationProvider implements INotificationProvider {
 
     const notificationPayload = {
       id: notificationId,
-      title: `Medicine Alarm: ${reminder.medicineName}`,
+      title: `Medicine Reminder: ${reminder.medicineName}`,
       body: `${subtitleText}\nTime to take your scheduled dose.`,
       data: {
         medicineId: reminder.medicineId,
         scheduleId: reminder.scheduleId,
         medicineName: reminder.medicineName,
         dosage: reminder.dosage,
+        reminderTime: reminder.reminderTime,
       },
       android: {
-        channelId: ALARM_CHANNEL_ID,
+        channelId: MEDICINE_CHANNEL_ID,
         importance: AndroidImportance.HIGH,
-        category: AndroidCategory.ALARM,
-        loopSound: true,
-        ongoing: true,
-        autoCancel: false,
+        category: AndroidCategory.REMINDER,
+        loopSound: false,
+        ongoing: false,
+        autoCancel: true,
         pressAction: {
           id: 'default',
         },
@@ -149,7 +154,7 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       },
       ios: {
         sound: 'default',
-        critical: true,
+        critical: false,
       },
     };
 
@@ -234,7 +239,7 @@ export class NotifeeNotificationProvider implements INotificationProvider {
 
     const notificationPayload = {
       id: notificationId,
-      title: `Meal Alarm: ${meal.label}`,
+      title: `Meal Reminder: ${meal.label}`,
       body: `Time for a calm, healthy meal. Maintain your daily eating routine.`,
       data: {
         type: 'meal',
@@ -244,10 +249,10 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       android: {
         channelId: MEAL_CHANNEL_ID,
         importance: AndroidImportance.HIGH,
-        category: AndroidCategory.ALARM,
-        loopSound: true,
-        ongoing: true,
-        autoCancel: false,
+        category: AndroidCategory.REMINDER,
+        loopSound: false,
+        ongoing: false,
+        autoCancel: true,
         pressAction: {
           id: 'default',
         },
@@ -268,14 +273,14 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       },
       ios: {
         sound: 'default',
-        critical: true,
+        critical: false,
       },
     };
 
     try {
       await notifee.createTriggerNotification(notificationPayload, trigger);
     } catch (err) {
-      console.warn('Meal alarm trigger failed, using standard trigger:', err);
+      console.warn('Meal reminder trigger failed, using standard trigger:', err);
       await notifee.createTriggerNotification(notificationPayload, {
         type: TriggerType.TIMESTAMP,
         timestamp: triggerDate.getTime(),
@@ -333,7 +338,7 @@ export class NotifeeNotificationProvider implements INotificationProvider {
 
     const notificationPayload = {
       id: notificationId,
-      title: params.label,
+      title: `Blood Pressure Reminder: ${params.label}`,
       body: `Rest quietly for 5 minutes, then take and log your reading.`,
       data: {
         type: 'bp',
@@ -342,10 +347,10 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       android: {
         channelId: BP_CHANNEL_ID,
         importance: AndroidImportance.HIGH,
-        category: AndroidCategory.ALARM,
-        loopSound: true,
-        ongoing: true,
-        autoCancel: false,
+        category: AndroidCategory.REMINDER,
+        loopSound: false,
+        ongoing: false,
+        autoCancel: true,
         pressAction: {
           id: 'default',
         },
@@ -354,6 +359,7 @@ export class NotifeeNotificationProvider implements INotificationProvider {
             title: 'Log Blood Pressure',
             pressAction: {
               id: 'open_bp_log',
+              launchActivity: 'default',
             },
           },
           {
@@ -366,14 +372,14 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       },
       ios: {
         sound: 'default',
-        critical: true,
+        critical: false,
       },
     };
 
     try {
       await notifee.createTriggerNotification(notificationPayload, trigger);
     } catch (err) {
-      console.warn('BP alarm trigger failed, using standard trigger:', err);
+      console.warn('BP reminder trigger failed, using standard trigger:', err);
       await notifee.createTriggerNotification(notificationPayload, {
         type: TriggerType.TIMESTAMP,
         timestamp: triggerDate.getTime(),
@@ -395,53 +401,53 @@ export class NotifeeNotificationProvider implements INotificationProvider {
   }
 
   // ----------------------------------------------------
-  // IMMEDIATE ALARM & TEST UTILITIES
+  // IMMEDIATE REMINDER & TEST UTILITIES
   // ----------------------------------------------------
 
   /**
-   * Immediately rings the alarm on device.
+   * Immediately displays a normal reminder notification with action buttons.
    * Completely bypasses background scheduler so Mom/User can verify
-   * loud looping sound, vibration, and lock screen actions instantly.
+   * standard chime, gentle banner, and action buttons instantly.
    */
-  async displayAlarmNow(medicineName: string = 'Paracetamol', dosage: string = '500 mg'): Promise<string> {
+  async displayReminderNow(medicineName: string = 'Metformin', dosage: string = '500 mg'): Promise<string> {
     await this.ensureChannels();
     const permitted = await this.requestPermissions();
     if (!permitted) {
       throw new Error('NOTIFICATIONS_DISABLED');
     }
 
-    const testId = `alarm_now_${Date.now()}`;
+    const testId = `reminder_now_${Date.now()}`;
 
     await notifee.displayNotification({
       id: testId,
-      title: `Medicine Alarm: ${medicineName}`,
-      body: `${dosage} • Take with water\nTap Stop Alarm below or mark as taken.`,
+      title: `Medicine Reminder: ${medicineName}`,
+      body: `${dosage} • Take with water\nTap Mark as Taken below or open Inai.`,
       data: {
         isTest: 'true',
         medicineName,
         dosage,
       },
       android: {
-        channelId: ALARM_CHANNEL_ID,
+        channelId: MEDICINE_CHANNEL_ID,
         importance: AndroidImportance.HIGH,
-        category: AndroidCategory.ALARM,
-        loopSound: true,
-        ongoing: true,
-        autoCancel: false,
+        category: AndroidCategory.REMINDER,
+        loopSound: false,
+        ongoing: false,
+        autoCancel: true,
         pressAction: {
           id: 'default',
         },
         actions: [
           {
-            title: 'Stop Alarm',
-            pressAction: {
-              id: 'dismiss_test',
-            },
-          },
-          {
             title: 'Mark as Taken',
             pressAction: {
               id: 'mark_taken',
+            },
+          },
+          {
+            title: 'Remind in 10m',
+            pressAction: {
+              id: 'snooze_10',
             },
           },
         ],
@@ -454,43 +460,53 @@ export class NotifeeNotificationProvider implements INotificationProvider {
     return testId;
   }
 
+  async displayAlarmNow(medicineName?: string, dosage?: string): Promise<string> {
+    return this.displayReminderNow(medicineName, dosage);
+  }
+
   /**
-   * Tests alarm firing after a short delay (e.g. 5 seconds)
-   * so user can lock their phone to test lock screen alert.
+   * Tests reminder notification firing after a short delay (e.g. 5 seconds)
+   * so user can lock their phone to test lock screen notification.
    */
-  async triggerTestAlarm(medicineName: string = 'Paracetamol', delaySeconds: number = 5): Promise<string> {
+  async triggerTestReminder(medicineName: string = 'Metformin', delaySeconds: number = 5): Promise<string> {
     await this.ensureChannels();
     const permitted = await this.requestPermissions();
     if (!permitted) {
       throw new Error('NOTIFICATIONS_DISABLED');
     }
 
-    const testId = `test_alarm_${Date.now()}`;
+    const testId = `test_reminder_${Date.now()}`;
     const triggerDate = new Date(Date.now() + delaySeconds * 1000);
 
     const notificationPayload = {
       id: testId,
-      title: `Medicine Alarm Test: ${medicineName}`,
-      body: `500 mg • Take with water\nThis is a test alarm. Tap below to stop.`,
+      title: `Medicine Reminder Test: ${medicineName}`,
+      body: `500 mg • Take with water\nTap Mark as Taken to test the action button.`,
       data: {
         isTest: 'true',
         medicineName,
       },
       android: {
-        channelId: ALARM_CHANNEL_ID,
+        channelId: MEDICINE_CHANNEL_ID,
         importance: AndroidImportance.HIGH,
-        category: AndroidCategory.ALARM,
-        loopSound: true,
-        ongoing: true,
-        autoCancel: false,
+        category: AndroidCategory.REMINDER,
+        loopSound: false,
+        ongoing: false,
+        autoCancel: true,
         pressAction: {
           id: 'default',
         },
         actions: [
           {
-            title: 'Stop Alarm',
+            title: 'Mark as Taken',
             pressAction: {
-              id: 'dismiss_test',
+              id: 'mark_taken',
+            },
+          },
+          {
+            title: 'Remind in 10m',
+            pressAction: {
+              id: 'snooze_10',
             },
           },
         ],
@@ -509,7 +525,7 @@ export class NotifeeNotificationProvider implements INotificationProvider {
         },
       });
     } catch (err) {
-      console.warn('Alarm trigger failed, falling back to setTimeout display:', err);
+      console.warn('Reminder trigger fallback to setTimeout display:', err);
     }
 
     // Safety fallback: if AlarmManager is throttled by OS for short 5s windows,
@@ -527,6 +543,10 @@ export class NotifeeNotificationProvider implements INotificationProvider {
     }, delaySeconds * 1000);
 
     return testId;
+  }
+
+  async triggerTestAlarm(medicineName?: string, delaySeconds?: number): Promise<string> {
+    return this.triggerTestReminder(medicineName, delaySeconds);
   }
 
   async checkAlarmPermissions(): Promise<{ exactAlarmPermitted: boolean; notificationsPermitted: boolean }> {
@@ -563,3 +583,6 @@ export class NotifeeNotificationProvider implements INotificationProvider {
     }
   }
 }
+
+// Default singleton notification provider instance
+export const notificationProvider: INotificationProvider = new NotifeeNotificationProvider();
