@@ -10,6 +10,7 @@ import {
 import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function AppTabs() {
   return (
@@ -27,9 +28,9 @@ export default function AppTabs() {
               Medicines
             </TabButton>
           </TabTrigger>
-          <TabTrigger name="meals" href="/meals" asChild>
-            <TabButton icon="restaurant-outline" activeIcon="restaurant">
-              Meals
+          <TabTrigger name="sugar" href="/sugar" asChild>
+            <TabButton icon="water-outline" activeIcon="water">
+              Sugar
             </TabButton>
           </TabTrigger>
           <TabTrigger name="bp" href="/bp" asChild>
@@ -60,8 +61,9 @@ export function TabButton({
   activeIcon,
   ...props
 }: TabButtonProps) {
-  // Explicitly light for clarity and contrast
-  const lightColors = Colors.light;
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+  const colors = Colors[scheme];
 
   return (
     <Pressable
@@ -74,16 +76,18 @@ export function TabButton({
         className={`min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 transition-all duration-200 ease-out ${
           isFocused
             ? 'bg-sage shadow-sm'
+            : isDark
+            ? 'bg-[#252320]'
             : 'bg-[#F2ECE4]'
         }`}>
         <Ionicons
           name={isFocused ? activeIcon : icon}
           size={16}
-          color={isFocused ? '#FFFFFF' : lightColors.textSecondary}
+          color={isFocused ? '#FFFFFF' : colors.textSecondary}
         />
         <Text
           className={`text-sm font-bold transition-colors duration-200 ${
-            isFocused ? 'text-white' : 'text-[#282522]'
+            isFocused ? 'text-white' : isDark ? 'text-[#FAF7F2]' : 'text-[#282522]'
           }`}>
           {children}
         </Text>
@@ -93,16 +97,24 @@ export function TabButton({
 }
 
 export function CustomTabList(props: TabListProps) {
-  const lightColors = Colors.light;
+  const scheme = useColorScheme();
+  const colors = Colors[scheme];
 
   return (
     <View className="absolute bottom-0 w-full p-3 justify-center items-center flex-row pointer-events-auto">
-      <View className="py-2.5 px-4 rounded-2xl border-[1.5px] border-[#E5DED4] bg-[#FFFFFF] flex-row items-center justify-between flex-grow max-w-[620px]">
+      <View
+        style={{
+          backgroundColor: colors.backgroundCard,
+          borderColor: colors.border,
+        }}
+        className="py-2.5 px-4 rounded-2xl border-[1.5px] flex-row items-center justify-between flex-grow max-w-[620px]">
         <View className="flex-row items-center gap-2 pl-1 pr-3">
           <View className="w-7 h-7 rounded-lg bg-sage/15 items-center justify-center">
-            <Ionicons name="heart" size={16} color={lightColors.primary} />
+            <Ionicons name="heart" size={16} color={colors.primary} />
           </View>
-          <Text className="text-base font-bold tracking-wide text-charcoal">
+          <Text
+            style={{ color: colors.text }}
+            className="text-base font-bold tracking-wide">
             Inai
           </Text>
         </View>

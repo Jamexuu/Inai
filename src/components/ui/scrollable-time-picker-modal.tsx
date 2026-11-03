@@ -6,9 +6,11 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { parse12HourParts } from '@/utils/date.utils';
 import { PrimaryButton } from './primary-button';
+import { useTheme } from '@/hooks/use-theme';
 
 interface ScrollableTimePickerModalProps {
   visible: boolean;
@@ -29,6 +31,7 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
   onConfirm,
   onClose,
 }) => {
+  const colors = useTheme();
   const [selectedHour, setSelectedHour] = useState<number>(8);
   const [selectedMinute, setSelectedMinute] = useState<string>('00');
   const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>('AM');
@@ -67,66 +70,77 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
       visible={visible}
       animationType="slide"
       transparent={true}
+      statusBarTranslucent={true}
       onRequestClose={onClose}>
       <View className="flex-1 bg-black/60 justify-end">
-        <View className="rounded-t-3xl border-t border-subtle-border bg-card p-5 pb-9 gap-4">
+        <Pressable
+          className="flex-1"
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss time picker"
+        />
+
+        <SafeAreaView
+          edges={['bottom']}
+          style={{ backgroundColor: colors.backgroundCard }}
+          className="rounded-t-3xl border-t border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-5 pb-6 gap-4">
           {/* Header */}
           <View className="flex-row justify-between items-center">
             <View>
-              <Text className="text-xl font-bold text-charcoal">
+              <Text className="text-xl font-bold text-charcoal dark:text-charcoal-dark">
                 Set Reminder Time
               </Text>
-              <Text className="text-sm font-normal text-umber">
+              <Text className="text-sm font-normal text-umber dark:text-umber-dark">
                 Scroll or tap to choose the exact time.
               </Text>
             </View>
             <Pressable
               onPress={onClose}
               className="p-2 -mr-2 active:opacity-70"
-              accessibilityLabel="Close time picker">
-              <Ionicons name="close" size={24} color="#6B645D" />
+              accessibilityLabel="Close time picker"
+              accessibilityRole="button">
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
             </Pressable>
           </View>
 
           {/* Time Preview Card */}
-          <View className="flex-row items-center justify-center py-3 px-4 rounded-2xl bg-surface border border-subtle-border gap-2.5">
-            <Ionicons name="time" size={22} color="#3D5A50" />
-            <Text className="text-2xl font-bold text-charcoal tracking-wide">
+          <View className="flex-row items-center justify-center py-3 px-4 rounded-2xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark gap-2.5">
+            <Ionicons name="time" size={22} color={colors.primary} />
+            <Text className="text-2xl font-bold text-charcoal dark:text-charcoal-dark tracking-wide">
               {previewTime}
             </Text>
           </View>
 
           {/* Scrollable Pickers Container */}
-          <View className="flex-row justify-between bg-canvas rounded-2xl border border-subtle-border p-2 h-[220px]">
-            {/* Hour Column */}
+          <View className="flex-row justify-between bg-canvas dark:bg-canvas-dark rounded-2xl border border-subtle-border dark:border-subtle-border-dark p-2 h-[220px]">
+            {/* Hours Column (1-12) */}
             <View className="flex-1 items-center">
-              <Text className="text-xs font-bold text-umber mb-1 uppercase tracking-wider">
-                Hour
-              </Text>
+              <Text className="text-xs font-bold text-umber dark:text-umber-dark mb-1">Hour</Text>
               <ScrollView
                 ref={hourScrollRef}
                 showsVerticalScrollIndicator={false}
-                className="w-full"
-                contentContainerStyle={{ paddingVertical: 4 }}>
-                {HOURS.map((hour) => {
-                  const isSelected = selectedHour === hour;
+                snapToInterval={ITEM_HEIGHT}
+                decelerationRate="fast"
+                className="w-full">
+                {HOURS.map((h) => {
+                  const isSelected = selectedHour === h;
                   return (
                     <Pressable
-                      key={hour}
-                      onPress={() => setSelectedHour(hour)}
+                      key={h}
+                      onPress={() => setSelectedHour(h)}
                       style={{ height: ITEM_HEIGHT }}
-                      className={`mx-1 rounded-xl items-center justify-center ${
+                      className={`rounded-xl items-center justify-center my-0.5 ${
                         isSelected
-                          ? 'bg-sage border border-sage'
-                          : 'bg-transparent'
+                          ? 'bg-sage dark:bg-sage-dark'
+                          : 'active:bg-card-selected'
                       }`}>
                       <Text
                         className={`text-lg ${
                           isSelected
                             ? 'font-bold text-white'
-                            : 'font-semibold text-charcoal'
+                            : 'font-semibold text-charcoal dark:text-charcoal-dark'
                         }`}>
-                        {hour}
+                        {h}
                       </Text>
                     </Pressable>
                   );
@@ -134,40 +148,37 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
               </ScrollView>
             </View>
 
-            {/* Separator Colon */}
-            <View className="justify-center items-center px-1 pt-4">
-              <Text className="text-2xl font-bold text-umber">:</Text>
-            </View>
+            {/* Divider */}
+            <View className="w-[1px] bg-subtle-border dark:bg-subtle-border-dark my-2 mx-1" />
 
-            {/* Minute Column */}
+            {/* Minutes Column (00-59) */}
             <View className="flex-1 items-center">
-              <Text className="text-xs font-bold text-umber mb-1 uppercase tracking-wider">
-                Minute
-              </Text>
+              <Text className="text-xs font-bold text-umber dark:text-umber-dark mb-1">Minute</Text>
               <ScrollView
                 ref={minuteScrollRef}
                 showsVerticalScrollIndicator={false}
-                className="w-full"
-                contentContainerStyle={{ paddingVertical: 4 }}>
-                {MINUTES.map((minStr) => {
-                  const isSelected = selectedMinute === minStr;
+                snapToInterval={ITEM_HEIGHT}
+                decelerationRate="fast"
+                className="w-full">
+                {MINUTES.map((m) => {
+                  const isSelected = selectedMinute === m;
                   return (
                     <Pressable
-                      key={minStr}
-                      onPress={() => setSelectedMinute(minStr)}
+                      key={m}
+                      onPress={() => setSelectedMinute(m)}
                       style={{ height: ITEM_HEIGHT }}
-                      className={`mx-1 rounded-xl items-center justify-center ${
+                      className={`rounded-xl items-center justify-center my-0.5 ${
                         isSelected
-                          ? 'bg-sage border border-sage'
-                          : 'bg-transparent'
+                          ? 'bg-sage dark:bg-sage-dark'
+                          : 'active:bg-card-selected'
                       }`}>
                       <Text
                         className={`text-lg ${
                           isSelected
                             ? 'font-bold text-white'
-                            : 'font-semibold text-charcoal'
+                            : 'font-semibold text-charcoal dark:text-charcoal-dark'
                         }`}>
-                        {minStr}
+                        {m}
                       </Text>
                     </Pressable>
                   );
@@ -175,12 +186,13 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
               </ScrollView>
             </View>
 
+            {/* Divider */}
+            <View className="w-[1px] bg-subtle-border dark:bg-subtle-border-dark my-2 mx-1" />
+
             {/* Period Column (AM / PM) */}
-            <View className="flex-1 items-center">
-              <Text className="text-xs font-bold text-umber mb-1 uppercase tracking-wider">
-                Period
-              </Text>
-              <View className="w-full justify-center flex-1 gap-2 px-1">
+            <View className="w-20 items-center justify-center">
+              <Text className="text-xs font-bold text-umber dark:text-umber-dark mb-3">AM / PM</Text>
+              <View className="w-full gap-2">
                 {PERIODS.map((p) => {
                   const isSelected = selectedPeriod === p;
                   return (
@@ -190,14 +202,14 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
                       style={{ height: ITEM_HEIGHT }}
                       className={`rounded-xl items-center justify-center ${
                         isSelected
-                          ? 'bg-sage border border-sage'
-                          : 'bg-surface border border-subtle-border'
+                          ? 'bg-sage dark:bg-sage-dark border border-sage dark:border-sage-dark'
+                          : 'bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark'
                       }`}>
                       <Text
                         className={`text-base ${
                           isSelected
                             ? 'font-bold text-white'
-                            : 'font-semibold text-charcoal'
+                            : 'font-semibold text-charcoal dark:text-charcoal-dark'
                         }`}>
                         {p}
                       </Text>
@@ -215,9 +227,8 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
             onPress={handleConfirm}
             className="min-h-[52px]"
           />
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
 };
-

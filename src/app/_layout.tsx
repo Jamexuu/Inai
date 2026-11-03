@@ -89,7 +89,9 @@ export default function TabLayout() {
           style={isDark ? 'light' : 'dark'}
           hidden={false}
         />
-        <View className={`flex-1 ${isDark ? 'dark bg-canvas-dark' : 'bg-canvas'}`}>
+        <View
+          style={{ backgroundColor: colors.background }}
+          className={`flex-1 ${isDark ? 'dark bg-canvas-dark' : 'bg-canvas'}`}>
           {ready ? (
             <>
               <AppTabs />

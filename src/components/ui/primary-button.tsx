@@ -21,37 +21,37 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   className = '',
 }) => {
   const getVariantButtonClass = () => {
-    if (disabled) return 'bg-surface opacity-60 border border-subtle-border';
+    if (disabled) return 'bg-surface opacity-60 border border-subtle-border dark:bg-surface-dark dark:border-subtle-border-dark';
     switch (variant) {
       case 'primary':
-        return 'bg-sage active:bg-[#2E443C]';
+        return 'bg-sage active:bg-[#2E443C] dark:bg-sage-dark dark:active:bg-sage';
       case 'secondary':
-        return 'bg-terracotta active:bg-[#A85338]';
+        return 'bg-terracotta active:bg-[#A85338] dark:bg-terracotta-dark';
       case 'outline':
-        return 'bg-card border-[1.5px] border-subtle-border active:bg-surface';
+        return 'bg-card border-[1.5px] border-subtle-border active:bg-surface dark:bg-card-dark dark:border-subtle-border-dark dark:active:bg-surface-dark';
       case 'danger':
-        return 'bg-card border-[1.5px] border-brick active:bg-brick-tint';
+        return 'bg-card border-[1.5px] border-brick active:bg-brick-tint dark:bg-card-dark dark:border-brick-dark dark:active:bg-brick-dark-tint';
       case 'ghost':
-        return 'bg-transparent active:bg-surface';
+        return 'bg-transparent active:bg-surface dark:active:bg-surface-dark';
       default:
-        return 'bg-sage active:bg-[#2E443C]';
+        return 'bg-sage active:bg-[#2E443C] dark:bg-sage-dark';
     }
   };
 
   const getVariantTextClass = () => {
-    if (disabled) return 'text-umber';
+    if (disabled) return 'text-umber dark:text-umber-dark';
     switch (variant) {
       case 'primary':
       case 'secondary':
-        return 'text-white font-bold';
+        return 'text-white dark:text-[#101F18] font-bold';
       case 'outline':
-        return 'text-sage font-bold';
+        return 'text-sage dark:text-sage-dark font-bold';
       case 'danger':
-        return 'text-brick font-bold';
+        return 'text-brick dark:text-brick-dark font-bold';
       case 'ghost':
-        return 'text-umber font-semibold';
+        return 'text-umber dark:text-umber-dark font-semibold';
       default:
-        return 'text-white font-bold';
+        return 'text-white dark:text-[#101F18] font-bold';
     }
   };
 

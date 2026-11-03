@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '@/hooks/use-theme';
 import { PrimaryButton } from './primary-button';
 
 interface EmptyStateProps {
@@ -18,15 +19,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   actionLabel,
   onAction,
 }) => {
+  const colors = useTheme();
+
   return (
-    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-surface p-6 items-center justify-center my-4 gap-2.5">
-      <View className="w-16 h-16 rounded-2xl border border-subtle-border bg-card items-center justify-center mb-1">
-        <MaterialCommunityIcons name={iconName} size={32} color="#3D5A50" />
+    <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark p-6 items-center justify-center my-4 gap-2.5">
+      <View className="w-16 h-16 rounded-2xl border border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark items-center justify-center mb-1">
+        <MaterialCommunityIcons name={iconName} size={32} color={colors.primary} />
       </View>
-      <Text className="text-xl font-bold text-center text-charcoal">
+      <Text className="text-xl font-bold text-center text-charcoal dark:text-charcoal-dark">
         {title}
       </Text>
-      <Text className="text-base font-medium text-center leading-[22px] mb-2 text-umber max-w-[280px]">
+      <Text className="text-base font-medium text-center leading-[22px] mb-2 text-umber dark:text-umber-dark max-w-[280px]">
         {description}
       </Text>
       {actionLabel && onAction ? (

@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type BottomTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
@@ -30,7 +31,7 @@ const TAB_CONFIGS: Record<string, TabConfig> = {
     label: 'Today',
     activeIcon: 'calendar',
     inactiveIcon: 'calendar-outline',
-    accessibilityLabel: 'Today tab, daily medicine and meal routine',
+    accessibilityLabel: 'Today tab, daily medicine and blood sugar routine',
   },
   explore: {
     name: 'explore',
@@ -39,19 +40,19 @@ const TAB_CONFIGS: Record<string, TabConfig> = {
     inactiveIcon: 'medkit-outline',
     accessibilityLabel: 'Medicines tab, active prescriptions and history',
   },
-  meals: {
-    name: 'meals',
-    label: 'Meals',
-    activeIcon: 'restaurant',
-    inactiveIcon: 'restaurant-outline',
-    accessibilityLabel: 'Meals tab, breakfast, lunch, and dinner routine',
+  sugar: {
+    name: 'sugar',
+    label: 'Sugar',
+    activeIcon: 'water',
+    inactiveIcon: 'water-outline',
+    accessibilityLabel: 'Sugar tab, blood glucose monitoring and trends',
   },
   bp: {
     name: 'bp',
     label: 'BP',
     activeIcon: 'heart',
     inactiveIcon: 'heart-outline',
-    accessibilityLabel: 'Blood Pressure tab, daily readings and alarms',
+    accessibilityLabel: 'Blood Pressure tab, daily readings and reminders',
   },
   history: {
     name: 'history',
@@ -74,12 +75,14 @@ function SlidingTabBar({
   navigation,
   insets,
 }: BottomTabBarProps) {
-  const lightColors = Colors.light;
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+  const colors = Colors[scheme];
   const isAndroid = Platform.OS === 'android';
   const bottomPadding =
     insets.bottom > 0 ? insets.bottom + 6 : isAndroid ? 12 : 8;
 
-  // Filter to visible tabs (exclude hidden routes like settings)
+  // Filter to visible tabs (exclude hidden routes like settings or meals)
   const visibleRoutes = state.routes.filter((route) => {
     const descriptor = descriptors[route.key];
     const rawOptions = descriptor?.options as
@@ -133,9 +136,9 @@ function SlidingTabBar({
   return (
     <View
       style={{
-        backgroundColor: lightColors.background,
+        backgroundColor: colors.background,
         borderTopWidth: 1,
-        borderTopColor: lightColors.border,
+        borderTopColor: colors.border,
         paddingTop: 4,
         paddingBottom: bottomPadding,
       }}>
@@ -163,7 +166,7 @@ function SlidingTabBar({
             width: pillWidth,
             height: pillHeight,
             borderRadius: 14,
-            backgroundColor: '#E9F0EC', // Solid sage tint (NO GRADIENTS, NO BORDERS)
+            backgroundColor: isDark ? '#23332C' : '#E9F0EC', // Solid sage tint (NO GRADIENTS, NO BORDERS)
             transform: [{ translateX }],
           }}
         />
@@ -220,7 +223,7 @@ function SlidingTabBar({
                   name={isFocused ? config.activeIcon : config.inactiveIcon}
                   size={20}
                   color={
-                    isFocused ? lightColors.primary : lightColors.textSecondary
+                    isFocused ? colors.primary : colors.textSecondary
                   }
                 />
               </View>
@@ -230,8 +233,8 @@ function SlidingTabBar({
                   fontSize: 11,
                   fontWeight: isFocused ? '700' : '600',
                   color: isFocused
-                    ? lightColors.primary
-                    : lightColors.textSecondary,
+                    ? colors.primary
+                    : colors.textSecondary,
                   marginTop: 2,
                 }}>
                 {config.label}
@@ -264,9 +267,9 @@ export default function AppTabs() {
         }}
       />
       <Tabs.Screen
-        name="meals"
+        name="sugar"
         options={{
-          title: 'Meals',
+          title: 'Sugar',
         }}
       />
       <Tabs.Screen
@@ -279,6 +282,14 @@ export default function AppTabs() {
         name="history"
         options={{
           title: 'History',
+        }}
+      />
+      {/* Hidden tab screen for meals so any existing references or routes don't crash */}
+      <Tabs.Screen
+        name="meals"
+        options={{
+          href: null,
+          title: 'Meals',
         }}
       />
       {/* Hidden tab screen for settings so it is accessible via router navigation */}

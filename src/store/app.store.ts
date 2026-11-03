@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AppThemeMode, settingsService } from '@/services/settings.service';
+import { syncAppTheme } from '@/hooks/use-color-scheme';
 
 interface AppState {
   selectedDate: string; // YYYY-MM-DD
@@ -35,6 +36,7 @@ export const useAppStore = create<AppState>((set) => ({
   setSelectedMedicineId: (id: string | null) => set({ selectedMedicineId: id }),
   setThemeMode: (mode: AppThemeMode) => {
     set({ themeMode: mode });
+    syncAppTheme(mode);
     settingsService.setThemeMode(mode).catch((e) => {
       console.warn('Failed to persist theme mode:', e);
     });

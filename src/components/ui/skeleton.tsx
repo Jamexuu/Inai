@@ -105,12 +105,12 @@ export const HomeSkeleton: React.FC = () => (
       <SkeletonBox width="60%" height={14} />
     </View>
 
-    {/* Meals Section Header */}
+    {/* Sugar Section Header */}
     <View className="pt-2">
-      <SkeletonBox width={120} height={20} />
+      <SkeletonBox width={140} height={20} />
     </View>
 
-    {/* Meal Card */}
+    {/* Sugar Card */}
     <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-3.5 flex-row justify-between items-center">
       <View className="flex-row items-center gap-3 flex-1">
         <SkeletonBox width={44} height={44} borderRadius={12} />
@@ -183,19 +183,49 @@ export const MealsSkeleton: React.FC = () => (
 );
 
 /**
- * Skeleton layout for Blood Pressure Tab
+ * Skeleton layout for Blood Sugar Tab
  */
-export const BPSkeleton: React.FC = () => (
+export const SugarSkeleton: React.FC = () => (
   <View className="gap-3 pt-1">
-    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-2">
+    {/* Trend Graph Skeleton */}
+    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-3">
       <SkeletonBox width={140} height={18} />
+      <View className="flex-row gap-2.5">
+        <SkeletonBox width="48%" height={64} borderRadius={12} />
+        <SkeletonBox width="48%" height={64} borderRadius={12} />
+      </View>
       <SkeletonBox width="100%" height={44} borderRadius={12} />
-      <SkeletonBox width="100%" height={44} borderRadius={12} />
+      <SkeletonBox width="100%" height={150} borderRadius={12} />
     </View>
+    {/* Latest Reading Skeleton */}
     <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-2">
       <SkeletonBox width={120} height={16} />
       <SkeletonBox width={140} height={36} />
       <SkeletonBox width="100%" height={20} />
+    </View>
+  </View>
+);
+
+/**
+ * Skeleton layout for Blood Pressure Tab
+ */
+export const BPSkeleton: React.FC = () => (
+  <View className="gap-3 pt-1">
+    {/* Trend Graph Skeleton */}
+    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-3">
+      <SkeletonBox width={140} height={18} />
+      <View className="flex-row gap-2.5">
+        <SkeletonBox width="48%" height={64} borderRadius={12} />
+        <SkeletonBox width="48%" height={64} borderRadius={12} />
+      </View>
+      <SkeletonBox width="100%" height={44} borderRadius={12} />
+      <SkeletonBox width="100%" height={150} borderRadius={12} />
+    </View>
+    {/* Alarms Card Skeleton */}
+    <View className="rounded-2xl border-[1.5px] border-subtle-border bg-card p-4 gap-2">
+      <SkeletonBox width={140} height={18} />
+      <SkeletonBox width="100%" height={44} borderRadius={12} />
+      <SkeletonBox width="100%" height={44} borderRadius={12} />
     </View>
   </View>
 );
