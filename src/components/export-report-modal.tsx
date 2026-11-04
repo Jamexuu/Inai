@@ -5,13 +5,14 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
-  Alert,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { pdfExportService, ReportType } from '@/services/pdf-export.service';
 import { PrimaryButton } from './ui/primary-button';
+import { ConfirmationDialog } from './ui/confirmation-dialog';
+import { ScalePressable } from './ui/scale-pressable';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ExportReportModalProps {
@@ -29,6 +30,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   const insets = useSafeAreaInsets();
   const [selectedType, setSelectedType] = useState<ReportType>(initialType);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const reportOptions: Array<{
     type: ReportType;
@@ -69,6 +71,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
 
   const handleExportShare = async () => {
     setIsExporting(true);
+    setExportError(null);
     try {
       await pdfExportService.exportReport({
         reportType: selectedType,
@@ -77,7 +80,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
       onClose();
     } catch (err) {
       console.error('Export error:', err);
-      Alert.alert('Export Failed', "We couldn't generate the PDF file. Please try again.");
+      setExportError("We couldn't generate the PDF file. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -121,13 +124,14 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                   Generate a clean, printable PDF report for your doctor or caregiver.
                 </Text>
               </View>
-              <Pressable
+              <ScalePressable
                 onPress={onClose}
+                scaleTo={0.9}
                 className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
                 accessibilityRole="button"
                 accessibilityLabel="Close export modal">
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {/* Report Type Options */}
@@ -135,9 +139,10 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
               {reportOptions.map((opt) => {
                 const isSelected = selectedType === opt.type;
                 return (
-                  <Pressable
+                  <ScalePressable
                     key={opt.type}
                     onPress={() => setSelectedType(opt.type)}
+                    scaleTo={0.96}
                     accessibilityRole="button"
                     accessibilityLabel={`Select ${opt.title}`}
                     className={`min-h-[58px] p-3.5 rounded-2xl border-[1.5px] flex-row items-center gap-3 active:opacity-85 ${
@@ -161,7 +166,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
                       size={22}
                       color={isSelected ? colors.primary : colors.textMuted}
                     />
-                  </Pressable>
+                  </ScalePressable>
                 );
               })}
             </View>
@@ -194,6 +199,18 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
           </ScrollView>
         </SafeAreaView>
       </View>
+
+      {/* Simple Alert Dialog for Export Errors */}
+      <ConfirmationDialog
+        visible={!!exportError}
+        title="Export failed"
+        message={exportError || "Couldn't create the PDF report. Please try again."}
+        confirmLabel="OK"
+        cancelLabel="Close"
+        variant="warning"
+        onConfirm={() => setExportError(null)}
+        onCancel={() => setExportError(null)}
+      />
     </Modal>
   );
 };

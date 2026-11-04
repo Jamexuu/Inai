@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Alert,
   ScrollView,
   Text,
   View,
@@ -18,6 +17,8 @@ import {
   PrimaryButton,
   EmptyState,
   MedicinesSkeleton,
+  ConfirmationDialog,
+  ScalePressable,
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { formatTo12Hour, formatDaysOfWeekSummary } from '@/utils/date.utils';
@@ -37,6 +38,8 @@ export default function MedicinesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedMedicineForEdit, setSelectedMedicineForEdit] = useState<MedicineWithSchedules | null>(null);
+  const [medicineToDelete, setMedicineToDelete] = useState<MedicineWithSchedules | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
@@ -67,21 +70,21 @@ export default function MedicinesScreen() {
   };
 
   const handleDeleteMedicine = (med: MedicineWithSchedules) => {
-    Alert.alert(
-      'Remove Medicine',
-      `Are you sure you want to remove ${med.name}? Reminders for this medicine will also be cancelled.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await medicineService.deleteMedicine(med.id);
-            triggerRefresh();
-          },
-        },
-      ]
-    );
+    setMedicineToDelete(med);
+  };
+
+  const handleConfirmDeleteMedicine = async () => {
+    if (!medicineToDelete) return;
+    setIsDeleting(true);
+    try {
+      await medicineService.deleteMedicine(medicineToDelete.id);
+      triggerRefresh();
+      setMedicineToDelete(null);
+    } catch (err) {
+      console.error('Error deleting medicine:', err);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -109,13 +112,14 @@ export default function MedicinesScreen() {
               All registered prescriptions and recent intake records for Mom.
             </Text>
           </View>
-          <Pressable
+          <ScalePressable
             onPress={() => router.push('/settings')}
+            scaleTo={0.92}
             className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
             accessibilityRole="button"
             accessibilityLabel="Open settings and display theme">
             <Ionicons name="settings-outline" size={22} color={colors.primary} />
-          </Pressable>
+          </ScalePressable>
         </View>
 
         {loading ? (
@@ -159,9 +163,9 @@ export default function MedicinesScreen() {
             {medicines.length === 0 ? (
               <EmptyState
                 iconName="pill"
-                title="No medicines found"
-                description="Keep daily medicines organized with exact reminder times for Mom."
-                actionLabel="Add Medicine"
+                title="Your Medicine Cabinet is Empty"
+                description="Keep daily medicines organized with dosages and reminder times for Mom."
+                actionLabel="Add First Medicine"
                 onAction={() => {
                   setSelectedMedicineForEdit(null);
                   setIsAddModalOpen(true);
@@ -182,11 +186,12 @@ export default function MedicinesScreen() {
                       </Text>
                     </View>
                     <View className="flex-row items-center gap-1.5">
-                      <Pressable
+                      <ScalePressable
                         onPress={() => {
                           setSelectedMedicineForEdit(med);
                           setIsAddModalOpen(true);
                         }}
+                        scaleTo={0.93}
                         className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-surface dark:active:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark"
                         accessibilityRole="button"
                         accessibilityLabel={`Edit ${med.name}`}>
@@ -194,9 +199,10 @@ export default function MedicinesScreen() {
                         <Text className="text-[14px] font-bold text-sage dark:text-sage-dark">
                           Edit
                         </Text>
-                      </Pressable>
-                      <Pressable
+                      </ScalePressable>
+                      <ScalePressable
                         onPress={() => handleDeleteMedicine(med)}
+                        scaleTo={0.93}
                         className="min-h-[44px] min-w-[64px] px-3 py-2 flex-row items-center justify-center gap-1 rounded-xl active:bg-brick-tint/40 border border-brick/30 dark:border-brick-dark/30"
                         accessibilityRole="button"
                         accessibilityLabel={`Remove ${med.name}`}>
@@ -204,7 +210,7 @@ export default function MedicinesScreen() {
                         <Text className="text-[14px] font-bold text-brick dark:text-brick-dark">
                           Delete
                         </Text>
-                      </Pressable>
+                      </ScalePressable>
                     </View>
                   </View>
 
@@ -300,8 +306,20 @@ export default function MedicinesScreen() {
           setSelectedMedicineForEdit(null);
         }}
         onSuccess={() => triggerRefresh()}
-        initialMode="new"
         initialMedicine={selectedMedicineForEdit}
+      />
+
+      {/* Simple Confirmation Modal for Removing Medicine */}
+      <ConfirmationDialog
+        visible={!!medicineToDelete}
+        title="Remove medicine?"
+        message={`Remove ${medicineToDelete?.name} from your cabinet? Reminders will also be cancelled.`}
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        variant="danger"
+        isSubmitting={isDeleting}
+        onConfirm={handleConfirmDeleteMedicine}
+        onCancel={() => setMedicineToDelete(null)}
       />
     </SafeAreaView>
   );

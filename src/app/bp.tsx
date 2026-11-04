@@ -21,6 +21,7 @@ import {
   BPSkeleton,
   HealthBarGraph,
   PaginationControls,
+  ScalePressable,
 } from '@/components/ui';
 import { AddEditBPModal } from '@/components/add-edit-bp-modal';
 import { ExportReportModal } from '@/components/export-report-modal';
@@ -159,23 +160,25 @@ export default function BloodPressureScreen() {
 
           <View className="flex-row items-center gap-2">
             {/* Export PDF Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => setIsExportModalOpen(true)}
+              scaleTo={0.92}
               className="min-h-[44px] px-3 flex-row items-center gap-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
               accessibilityRole="button"
               accessibilityLabel="Export blood pressure log as PDF">
               <Ionicons name="document-text-outline" size={18} color={colors.primary} />
               <Text className="text-xs font-bold text-sage dark:text-sage-dark">Export PDF</Text>
-            </Pressable>
+            </ScalePressable>
 
             {/* Settings Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => router.push('/settings')}
+              scaleTo={0.92}
               className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
               accessibilityRole="button"
               accessibilityLabel="Open settings and display theme">
               <Ionicons name="settings-outline" size={22} color={colors.primary} />
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
 
@@ -242,8 +245,9 @@ export default function BloodPressureScreen() {
                           <Text className="text-[15px] font-bold text-charcoal dark:text-charcoal-dark">
                             {isMorning ? 'Morning Check' : 'Evening Check'}
                           </Text>
-                          <Pressable
+                          <ScalePressable
                             onPress={() => setTimePickerSlot(rem.id)}
+                            scaleTo={0.92}
                             className="min-h-[44px] flex-row items-center gap-1.5 py-1 px-1 rounded-lg"
                             accessibilityRole="button"
                             accessibilityLabel={`Change ${rem.label} time, currently ${formattedTime}`}>
@@ -251,7 +255,7 @@ export default function BloodPressureScreen() {
                             <Text className="text-sm font-bold text-sage dark:text-sage-dark underline">
                               {formattedTime}
                             </Text>
-                          </Pressable>
+                          </ScalePressable>
                         </View>
                       </View>
                       <Switch
@@ -313,14 +317,15 @@ export default function BloodPressureScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Pressable
+                  <ScalePressable
                     onPress={() => handleOpenEdit(latestLog)}
+                    scaleTo={0.92}
                     className="min-h-[44px] min-w-[64px] flex-row items-center justify-center gap-1 py-1 px-3 rounded-xl active:bg-surface dark:active:bg-surface-dark"
                     accessibilityRole="button"
                     accessibilityLabel="Edit latest reading">
                     <Ionicons name="pencil" size={18} color={colors.primary} />
                     <Text className="text-sm font-bold text-sage dark:text-sage-dark">Edit</Text>
-                  </Pressable>
+                  </ScalePressable>
                 </View>
               </View>
             ) : null}
@@ -343,9 +348,9 @@ export default function BloodPressureScreen() {
             {logs.length === 0 ? (
               <EmptyState
                 iconName="heart-pulse"
-                title="No blood pressure logs yet"
-                description="Regularly checking blood pressure helps maintain Mom's health and routine."
-                actionLabel="Log Blood Pressure"
+                title="No Blood Pressure Readings Yet"
+                description="Regularly checking systolic and diastolic numbers helps keep Mom healthy and rested."
+                actionLabel="Record First Reading"
                 onAction={handleOpenAdd}
               />
             ) : (
@@ -361,9 +366,10 @@ export default function BloodPressureScreen() {
                   const formattedTime = formatTo12Hour(dateObj);
 
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={log.id}
                       onPress={() => handleOpenEdit(log)}
+                      scaleTo={0.98}
                       className="min-h-[64px] rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 gap-2.5 active:bg-card-selected"
                       accessibilityRole="button"
                       accessibilityLabel={`Reading ${log.systolic} over ${log.diastolic} mmHg on ${formattedDate}. Tap to edit.`}>
@@ -409,7 +415,7 @@ export default function BloodPressureScreen() {
                           Note: {log.notes}
                         </Text>
                       ) : null}
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
 

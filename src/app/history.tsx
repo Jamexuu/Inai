@@ -26,6 +26,7 @@ import {
   EmptyState,
   HistorySkeleton,
   PaginationControls,
+  ScalePressable,
 } from '@/components/ui';
 import { ExportReportModal } from '@/components/export-report-modal';
 import { AddEditSugarModal } from '@/components/add-edit-sugar-modal';
@@ -248,23 +249,25 @@ export default function HistoryScreen() {
 
           <View className="flex-row items-center gap-2">
             {/* Export PDF Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => setIsExportModalOpen(true)}
+              scaleTo={0.92}
               className="min-h-[44px] px-3 flex-row items-center gap-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
               accessibilityRole="button"
               accessibilityLabel="Export health records as PDF">
               <Ionicons name="document-text-outline" size={18} color={colors.primary} />
               <Text className="text-xs font-bold text-sage dark:text-sage-dark">Export PDF</Text>
-            </Pressable>
+            </ScalePressable>
 
             {/* Settings Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => router.push('/settings')}
+              scaleTo={0.92}
               className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
               accessibilityRole="button"
               accessibilityLabel="Open settings and display theme">
               <Ionicons name="settings-outline" size={22} color={colors.primary} />
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
 
@@ -279,28 +282,30 @@ export default function HistoryScreen() {
             </Text>
           </View>
           <View className="flex-row gap-2">
-            <Pressable
+            <ScalePressable
               onPress={() => {
                 setSelectedSugarLog(null);
                 setIsAddSugarModalOpen(true);
               }}
+              scaleTo={0.92}
               className="min-h-[42px] px-3.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark flex-row items-center gap-1.5 active:opacity-80"
               accessibilityRole="button"
               accessibilityLabel="Log past blood sugar reading">
               <Ionicons name="water-outline" size={16} color={colors.secondary} />
               <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark">+ Sugar</Text>
-            </Pressable>
-            <Pressable
+            </ScalePressable>
+            <ScalePressable
               onPress={() => {
                 setSelectedBPLog(null);
                 setIsAddBPModalOpen(true);
               }}
+              scaleTo={0.92}
               className="min-h-[42px] px-3.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark flex-row items-center gap-1.5 active:opacity-80"
               accessibilityRole="button"
               accessibilityLabel="Log past blood pressure reading">
               <Ionicons name="heart-outline" size={16} color={colors.primary} />
               <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark">+ BP</Text>
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
 
@@ -314,11 +319,12 @@ export default function HistoryScreen() {
           ].map((tab) => {
             const isSelected = filter === tab.key;
             return (
-              <Pressable
+              <ScalePressable
                 key={tab.key}
                 accessibilityRole="button"
                 accessibilityLabel={`Filter by ${tab.label}`}
                 accessibilityState={{ selected: isSelected }}
+                scaleTo={0.92}
                 onPress={() => {
                   setFilter(tab.key as FilterType);
                   setCurrentPage(1);
@@ -334,7 +340,7 @@ export default function HistoryScreen() {
                   }`}>
                   {tab.label}
                 </Text>
-              </Pressable>
+              </ScalePressable>
             );
           })}
         </View>
@@ -354,8 +360,30 @@ export default function HistoryScreen() {
             {filteredItems.length === 0 ? (
               <EmptyState
                 iconName="history"
-                title="No history records yet"
-                description="When you take doses, log blood sugar, or record blood pressure, they will appear here."
+                title={
+                  filter !== 'all'
+                    ? `No ${
+                        filter === 'medicines'
+                          ? 'medicine'
+                          : filter === 'bp'
+                          ? 'blood pressure'
+                          : 'blood sugar'
+                      } records found`
+                    : 'No routine history yet'
+                }
+                description={
+                  filter !== 'all'
+                    ? 'No records match this filter. Switch to all categories to view your full routine timeline.'
+                    : 'When you take medicines, record blood pressure, or log blood sugar, your complete timeline will appear here.'
+                }
+                actionLabel={filter !== 'all' ? 'Show All History' : "Go to Today's Routine"}
+                onAction={() => {
+                  if (filter !== 'all') {
+                    setFilter('all');
+                  } else {
+                    router.push('/');
+                  }
+                }}
               />
             ) : (
               <View className="gap-3">
@@ -373,9 +401,10 @@ export default function HistoryScreen() {
                   const isEditable = item.type !== 'medicine';
 
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={item.id}
                       disabled={!isEditable}
+                      scaleTo={isEditable ? 0.98 : 1}
                       onPress={() => {
                         if (item.type === 'sugar' && item.rawSugarLog) {
                           setSelectedSugarLog(item.rawSugarLog);
@@ -426,7 +455,7 @@ export default function HistoryScreen() {
                           Note: {item.notes}
                         </Text>
                       ) : null}
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
 

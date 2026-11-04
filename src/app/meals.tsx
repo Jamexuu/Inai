@@ -16,6 +16,7 @@ import {
   PrimaryButton,
   SectionHeader,
   MealsSkeleton,
+  ScalePressable,
 } from '@/components/ui';
 import { mealService } from '@/services/meal.service';
 import { useAppStore } from '@/store/app.store';
@@ -130,13 +131,14 @@ export default function MealsScreen() {
               {formattedDate} (steady routine for Mom)
             </Text>
           </View>
-          <Pressable
+          <ScalePressable
             onPress={() => router.push('/settings')}
+            scaleTo={0.92}
             className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface border border-subtle-border active:bg-card-selected"
             accessibilityRole="button"
             accessibilityLabel="Open settings and display theme">
             <Ionicons name="settings-outline" size={22} color="#3D5A50" />
-          </Pressable>
+          </ScalePressable>
         </View>
 
         {loading ? (
@@ -178,9 +180,9 @@ export default function MealsScreen() {
             {meals.length === 0 ? (
               <EmptyState
                 iconName="silverware-fork-knife"
-                title="No meals scheduled"
-                description="Add your daily meals so you can maintain a steady routine."
-                actionLabel="Add Meal"
+                title="No Meals Scheduled Yet"
+                description="Add Breakfast, Lunch, Dinner, or snacks so you can gently maintain Mom's daily routine."
+                actionLabel="Add First Meal"
                 onAction={handleOpenAdd}
               />
             ) : (
