@@ -13,6 +13,7 @@ import { bloodSugarService, SugarAverageResult } from '@/services/blood-sugar.se
 import { bloodPressureService, BPAverageResult } from '@/services/blood-pressure.service';
 import { useTheme } from '@/hooks/use-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ScalePressable } from './scale-pressable';
 
 export type TimeFrame = 'today' | 'week' | 'month' | 'year';
 
@@ -580,12 +581,13 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
         ].map((tab) => {
           const isSelected = timeframe === tab.key;
           return (
-            <Pressable
+            <ScalePressable
               key={tab.key}
               onPress={() => {
                 setTimeframe(tab.key as TimeFrame);
                 setSelectedPointIndex(null);
               }}
+              scaleTo={0.92}
               accessibilityRole="button"
               accessibilityLabel={`View ${tab.label} graph`}
               className={`flex-1 min-h-[44px] items-center justify-center rounded-lg transition-colors ${
@@ -597,7 +599,7 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                 }`}>
                 {tab.label}
               </Text>
-            </Pressable>
+            </ScalePressable>
           );
         })}
       </View>

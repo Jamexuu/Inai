@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
+import { ScalePressable } from './scale-pressable';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/use-theme';
 import {
@@ -58,36 +59,39 @@ export const WeekDaySelector: React.FC<WeekDaySelectorProps> = ({
 
         <View className="flex-row items-center gap-1.5">
           {!isSelectedToday ? (
-            <Pressable
+            <ScalePressable
               onPress={handleResetToday}
+              scaleTo={0.92}
               className="min-h-[38px] px-2.5 rounded-lg bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark items-center justify-center active:opacity-80"
               accessibilityRole="button"
               accessibilityLabel="Return to today's date">
               <Text className="text-xs font-bold text-sage dark:text-sage-dark">
                 Today
               </Text>
-            </Pressable>
+            </ScalePressable>
           ) : null}
 
           {/* Previous Week */}
-          <Pressable
+          <ScalePressable
             onPress={handlePrevWeek}
             hitSlop={6}
+            scaleTo={0.9}
             className="w-9 h-9 rounded-lg bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark items-center justify-center active:opacity-75"
             accessibilityRole="button"
             accessibilityLabel="Previous week">
             <Ionicons name="chevron-back" size={18} color={colors.primary} />
-          </Pressable>
+          </ScalePressable>
 
           {/* Next Week */}
-          <Pressable
+          <ScalePressable
             onPress={handleNextWeek}
             hitSlop={6}
+            scaleTo={0.9}
             className="w-9 h-9 rounded-lg bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark items-center justify-center active:opacity-75"
             accessibilityRole="button"
             accessibilityLabel="Next week">
             <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-          </Pressable>
+          </ScalePressable>
         </View>
       </View>
 
@@ -106,9 +110,10 @@ export const WeekDaySelector: React.FC<WeekDaySelectorProps> = ({
           if (isSelected) accessibilityDesc += ', Selected';
 
           return (
-            <Pressable
+            <ScalePressable
               key={item.ymd}
               onPress={() => onSelectDate(item.date)}
+              scaleTo={0.92}
               accessibilityRole="button"
               accessibilityLabel={accessibilityDesc}
               accessibilityState={{ selected: isSelected }}
@@ -169,7 +174,7 @@ export const WeekDaySelector: React.FC<WeekDaySelectorProps> = ({
                   />
                 ) : null}
               </View>
-            </Pressable>
+            </ScalePressable>
           );
         })}
       </View>

@@ -5,6 +5,7 @@ import { TodayMealDose } from '@/types';
 import { formatTo12Hour } from '@/utils/date.utils';
 import { StatusBadge } from './status-badge';
 import { PrimaryButton } from './primary-button';
+import { ScalePressable } from './scale-pressable';
 
 interface MealCardProps {
   meal: TodayMealDose;
@@ -58,13 +59,14 @@ export const MealCard: React.FC<MealCardProps> = ({
         <View className="flex-row items-center gap-1">
           <StatusBadge status={meal.status} type="meal" />
           {onEdit ? (
-            <Pressable
+            <ScalePressable
               onPress={() => onEdit(meal)}
+              scaleTo={0.92}
               className="min-w-[44px] min-h-[44px] items-center justify-center rounded-xl active:bg-surface"
               accessibilityRole="button"
               accessibilityLabel={`Edit ${meal.label} time`}>
               <Ionicons name="pencil" size={18} color="#6B645D" />
-            </Pressable>
+            </ScalePressable>
           ) : null}
         </View>
       </View>

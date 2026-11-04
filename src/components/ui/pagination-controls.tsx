@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/use-theme';
+import { ScalePressable } from './scale-pressable';
 
 interface PaginationControlsProps {
   currentPage: number; // 1-indexed
@@ -47,9 +48,10 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
       {/* Navigation Buttons Row */}
       <View className="flex-row items-center justify-between gap-2">
         {/* Previous Button */}
-        <Pressable
+        <ScalePressable
           disabled={!canGoPrev}
           onPress={() => onPageChange(currentPage - 1)}
+          scaleTo={0.93}
           className={`min-h-[44px] px-3.5 rounded-xl border flex-row items-center gap-1.5 active:opacity-75 ${
             canGoPrev
               ? 'bg-card dark:bg-card-dark border-subtle-border dark:border-subtle-border-dark'
@@ -69,7 +71,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
             }`}>
             Prev
           </Text>
-        </Pressable>
+        </ScalePressable>
 
         {/* Page pills or simple summary */}
         {showPills ? (
@@ -77,9 +79,10 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
             {pageNumbers.map((p) => {
               const isActive = p === currentPage;
               return (
-                <Pressable
+                <ScalePressable
                   key={p}
                   onPress={() => onPageChange(p)}
+                  scaleTo={0.9}
                   className={`min-w-[40px] min-h-[40px] rounded-xl border items-center justify-center active:opacity-80 ${
                     isActive
                       ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
@@ -94,7 +97,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
                     }`}>
                     {p}
                   </Text>
-                </Pressable>
+                </ScalePressable>
               );
             })}
           </View>
@@ -107,9 +110,10 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         )}
 
         {/* Next Button */}
-        <Pressable
+        <ScalePressable
           disabled={!canGoNext}
           onPress={() => onPageChange(currentPage + 1)}
+          scaleTo={0.93}
           className={`min-h-[44px] px-3.5 rounded-xl border flex-row items-center gap-1.5 active:opacity-75 ${
             canGoNext
               ? 'bg-card dark:bg-card-dark border-subtle-border dark:border-subtle-border-dark'
@@ -129,7 +133,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
             size={18}
             color={canGoNext ? colors.primary : colors.textMuted}
           />
-        </Pressable>
+        </ScalePressable>
       </View>
 
       {/* Item Range Summary */}

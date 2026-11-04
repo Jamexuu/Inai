@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/hooks/use-theme';
+import { ScalePressable } from './scale-pressable';
 import {
   formatDateToYMD,
   formatYMDToFullFriendly,
@@ -189,13 +190,14 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
                   {formatYMDToFullFriendly(selectedYMD)}
                 </Text>
               </View>
-              <Pressable
+              <ScalePressable
                 onPress={onClose}
+                scaleTo={0.9}
                 className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
                 accessibilityRole="button"
                 accessibilityLabel="Close date picker">
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {/* Quick Date Shortcut Chips */}
@@ -207,9 +209,10 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
               ].map((chip) => {
                 const isActive = selectedYMD === chip.ymd;
                 return (
-                  <Pressable
+                  <ScalePressable
                     key={chip.label}
                     onPress={() => handleSelectQuick(chip.ymd)}
+                    scaleTo={0.92}
                     className={`min-h-[40px] px-3.5 py-1.5 rounded-xl border flex-row items-center justify-center active:opacity-80 ${
                       isActive
                         ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
@@ -221,35 +224,37 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
                       }`}>
                       {chip.label}
                     </Text>
-                  </Pressable>
+                  </ScalePressable>
                 );
               })}
             </View>
 
             {/* Month & Year Navigator */}
             <View className="flex-row items-center justify-between bg-surface dark:bg-surface-dark rounded-2xl p-2.5 border border-subtle-border dark:border-subtle-border-dark mt-1">
-              <Pressable
+              <ScalePressable
                 onPress={handlePrevMonth}
+                scaleTo={0.9}
                 className="min-w-[44px] min-h-[44px] items-center justify-center rounded-xl active:bg-card-selected"
                 accessibilityRole="button"
                 accessibilityLabel="Previous month">
                 <Ionicons name="chevron-back" size={22} color={colors.primary} />
-              </Pressable>
+              </ScalePressable>
 
               <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
                 {MONTH_NAMES[viewMonth]} {viewYear}
               </Text>
 
-              <Pressable
+              <ScalePressable
                 onPress={handleNextMonth}
                 disabled={isNextDisabled}
+                scaleTo={0.9}
                 className={`min-w-[44px] min-h-[44px] items-center justify-center rounded-xl ${
                   isNextDisabled ? 'opacity-30' : 'active:bg-card-selected'
                 }`}
                 accessibilityRole="button"
                 accessibilityLabel="Next month">
                 <Ionicons name="chevron-forward" size={22} color={colors.primary} />
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {/* Days of Week Row */}
@@ -292,16 +297,17 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
                 }
 
                 return (
-                  <Pressable
+                  <ScalePressable
                     key={item.ymd || index}
                     disabled={item.isFuture}
                     onPress={() => handleDayPress(item.ymd, item.isFuture)}
+                    scaleTo={0.9}
                     className={`w-[13.5%] h-11 items-center justify-center rounded-full border mb-1 active:opacity-75 ${bgClass} ${borderClass}`}
                     accessibilityRole="button"
                     accessibilityLabel={item.ymd ? formatYMDToFullFriendly(item.ymd) : undefined}
                     accessibilityState={{ selected: item.isSelected, disabled: item.isFuture }}>
                     <Text className={`text-sm ${textClass}`}>{item.day}</Text>
-                  </Pressable>
+                  </ScalePressable>
                 );
               })}
             </View>
