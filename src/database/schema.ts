@@ -4,8 +4,6 @@
  */
 
 export const SCHEMA_SQL = `
-PRAGMA foreign_keys = ON;
-
 -- User Profile
 CREATE TABLE IF NOT EXISTS user_profiles (
   id TEXT PRIMARY KEY NOT NULL,
