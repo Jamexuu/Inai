@@ -12,3 +12,5 @@ export * from './health-bar-graph';
 export * from './date-picker-modal';
 export * from './pagination-controls';
 export * from './week-day-selector';
+export * from './confirmation-dialog';
+export * from './scale-pressable';
