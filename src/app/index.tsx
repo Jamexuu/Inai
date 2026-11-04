@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   ScrollView,
   Text,
@@ -13,16 +13,25 @@ import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
 import { bloodSugarService } from '@/services/blood-sugar.service';
 import { TodayMedicineDose, BloodSugarLog } from '@/types';
+import { DayDoseCount } from '@/repositories/medicine-log.repository';
 import {
-  MedicineCard,
   SectionHeader,
   PrimaryButton,
   EmptyState,
   HomeSkeleton,
+  WeekDaySelector,
+  MedicineGroupCard,
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { AddEditSugarModal } from '@/components/add-edit-sugar-modal';
-import { formatTo12Hour } from '@/utils/date.utils';
+import {
+  formatTo12Hour,
+  formatDateToYMD,
+  getWeekDates,
+  formatYMDToDisplay,
+  formatYMDToFullFriendly,
+} from '@/utils/date.utils';
+import { groupDosesBySlot } from '@/utils/medicine-group.utils';
 import {
   getSugarCategory,
   getSugarCategoryStyle,
@@ -37,8 +46,11 @@ export default function HomeScreen() {
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
 
+  // Active selected date for the week (defaults to today)
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [doses, setDoses] = useState<TodayMedicineDose[]>([]);
-  const [todaySugarLogs, setTodaySugarLogs] = useState<BloodSugarLog[]>([]);
+  const [weekStatuses, setWeekStatuses] = useState<Record<string, DayDoseCount>>({});
+  const [daySugarLogs, setDaySugarLogs] = useState<BloodSugarLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,31 +59,42 @@ export default function HomeScreen() {
   const [isSugarModalOpen, setIsSugarModalOpen] = useState(false);
   const [selectedSugarLog, setSelectedSugarLog] = useState<BloodSugarLog | null>(null);
 
-  // Load today's doses and sugar logs from SQLite
+  // Date calculations
+  const selectedDateYMD = useMemo(() => formatDateToYMD(selectedDate), [selectedDate]);
+  const todayYMD = useMemo(() => formatDateToYMD(new Date()), []);
+  const isSelectedToday = selectedDateYMD === todayYMD;
+  const isSelectedPast = selectedDateYMD < todayYMD;
+
+  const weekDays = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+  const startOfWeekYMD = weekDays[0].ymd;
+  const endOfWeekYMD = weekDays[6].ymd;
+
+  // Load selected day's routine, sugar logs, and week summary from SQLite
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const todayPrefix = new Date().toISOString().substring(0, 10);
-      const [todayDoses, allSugar] = await Promise.all([
-        medicineService.getTodayDoses(todayPrefix),
+      const [dayDoses, allSugar, weekStats] = await Promise.all([
+        medicineService.getTodayDoses(selectedDateYMD),
         bloodSugarService.getAllLogs(),
+        medicineService.getWeekRoutineStatus(startOfWeekYMD, endOfWeekYMD),
       ]);
 
-      const todaySugar = allSugar.filter(
-        (l) => l.loggedAt.substring(0, 10) === todayPrefix
+      const daySugar = allSugar.filter(
+        (l) => l.loggedAt.substring(0, 10) === selectedDateYMD
       );
 
-      setDoses(todayDoses);
-      setTodaySugarLogs(todaySugar);
+      setDoses(dayDoses);
+      setDaySugarLogs(daySugar);
+      setWeekStatuses(weekStats);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
-      setError("We couldn't load today's routine. Please try again.");
+      setError("We couldn't load the routine. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isDatabaseReady]);
+  }, [isDatabaseReady, selectedDateYMD, startOfWeekYMD, endOfWeekYMD]);
 
   useEffect(() => {
     loadData();
@@ -82,29 +105,42 @@ export default function HomeScreen() {
     loadData();
   };
 
-  // Mark medicine dose as taken
-  const handleMarkTaken = async (dose: TodayMedicineDose) => {
-    const todayPrefix = new Date().toISOString().substring(0, 10);
-    const scheduledTime = `${todayPrefix} ${dose.reminderTime}`;
-    await medicineService.markDose({
-      medicineId: dose.medicineId,
-      scheduleId: dose.scheduleId,
-      scheduledTime,
-      status: 'taken',
-    });
+  // Group doses by routine slot (Morning, After Lunch, Evening, Bedtime)
+  const slotGroups = useMemo(() => groupDosesBySlot(doses), [doses]);
+
+  // Overall progress calculations
+  const completedMeds = doses.filter((d) => d.status === 'taken').length;
+  const totalMeds = doses.length;
+
+  // Next pending routine slot
+  const pendingGroups = slotGroups.filter((g) => !g.allTaken && !g.allSkipped);
+  const nextPendingGroup = pendingGroups[0] || null;
+
+  // Action: Take all medicines in a slot
+  const handleTakeAllSlot = async (groupDoses: TodayMedicineDose[]) => {
+    await medicineService.markMultipleDosesTaken(groupDoses, selectedDateYMD);
     triggerRefresh();
   };
 
-  // Mark medicine dose as skipped
-  const handleMarkSkipped = async (dose: TodayMedicineDose) => {
-    const todayPrefix = new Date().toISOString().substring(0, 10);
-    const scheduledTime = `${todayPrefix} ${dose.reminderTime}`;
-    await medicineService.markDose({
-      medicineId: dose.medicineId,
-      scheduleId: dose.scheduleId,
-      scheduledTime,
-      status: 'skipped',
-    });
+  // Action: Skip all medicines in a slot
+  const handleSkipAllSlot = async (groupDoses: TodayMedicineDose[]) => {
+    await medicineService.markMultipleDosesSkipped(groupDoses, selectedDateYMD);
+    triggerRefresh();
+  };
+
+  // Action: Toggle individual medicine dose
+  const handleToggleDose = async (dose: TodayMedicineDose) => {
+    if (dose.status === 'taken' && dose.logId) {
+      await medicineService.unmarkDose(dose.logId);
+    } else {
+      const scheduledTime = `${selectedDateYMD} ${dose.reminderTime}`;
+      await medicineService.markDose({
+        medicineId: dose.medicineId,
+        scheduleId: dose.scheduleId,
+        scheduledTime,
+        status: 'taken',
+      });
+    }
     triggerRefresh();
   };
 
@@ -123,34 +159,19 @@ export default function HomeScreen() {
   const greeting =
     currentHour < 12 ? 'Good morning, Mom' : currentHour < 18 ? 'Good afternoon, Mom' : 'Good evening, Mom';
 
-  const formattedDate = new Date().toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedHeaderDate = isSelectedToday
+    ? new Date().toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      })
+    : formatYMDToFullFriendly(selectedDateYMD);
 
-  // Calculate progress
-  const completedMeds = doses.filter((d) => d.status === 'taken').length;
-  const totalMeds = doses.length;
-  const pendingDoses = doses.filter((d) => d.status === 'pending');
-  const nextPendingDose = pendingDoses[0] || null;
-
-  // Group pending doses that share the same time slot as nextPendingDose
-  const sameSlotPendingDoses = nextPendingDose
-    ? pendingDoses.filter((d) => d.timeSlot === nextPendingDose.timeSlot)
-    : [];
-  const isMultiMedicineGroup = sameSlotPendingDoses.length > 1;
-
-  const handleTakeAllSameSlot = async (groupDoses: TodayMedicineDose[]) => {
-    await medicineService.markMultipleDosesTaken(groupDoses);
-    triggerRefresh();
-  };
-
-  // Today's sugar average
-  const todaySugarAvg =
-    todaySugarLogs.length > 0
+  // Selected day's sugar average
+  const daySugarAvg =
+    daySugarLogs.length > 0
       ? Math.round(
-          todaySugarLogs.reduce((acc, curr) => acc + curr.level, 0) / todaySugarLogs.length
+          daySugarLogs.reduce((acc, curr) => acc + curr.level, 0) / daySugarLogs.length
         )
       : null;
 
@@ -173,10 +194,10 @@ export default function HomeScreen() {
         <View className="pt-3 pb-2 flex-row justify-between items-start">
           <View className="gap-1 flex-1 pr-2">
             <Text className="text-[28px] font-bold tracking-wide text-charcoal dark:text-charcoal-dark">
-              {greeting}
+              {isSelectedToday ? greeting : 'Medicine Routine'}
             </Text>
             <Text className="text-base font-semibold text-umber dark:text-umber-dark">
-              {formattedDate}
+              {formattedHeaderDate}
             </Text>
           </View>
           <Pressable
@@ -187,6 +208,38 @@ export default function HomeScreen() {
             <Ionicons name="settings-outline" size={22} color={colors.primary} />
           </Pressable>
         </View>
+
+        {/* ------------------------------------------------------------- */}
+        {/* Week Day Selector: Allows Mom to log medicines across the week */}
+        {/* ------------------------------------------------------------- */}
+        <WeekDaySelector
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          dayStatuses={weekStatuses}
+        />
+
+        {/* Past Day Notice Banner */}
+        {!isSelectedToday ? (
+          <View className="flex-row items-center justify-between p-3 rounded-xl bg-sage-tint/40 dark:bg-sage-dark-tint/40 border border-sage/20 dark:border-sage-dark/20 my-1">
+            <View className="flex-row items-center gap-2 flex-1 pr-2">
+              <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+              <Text className="text-xs font-semibold text-charcoal dark:text-charcoal-dark flex-1">
+                {isSelectedPast
+                  ? `Viewing previous day (${formatYMDToDisplay(selectedDateYMD)}). You can mark or update past medicines.`
+                  : `Viewing upcoming schedule for ${formatYMDToDisplay(selectedDateYMD)}.`}
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setSelectedDate(new Date())}
+              className="px-2.5 py-1 rounded-lg bg-card dark:bg-card-dark border border-subtle-border dark:border-subtle-border-dark active:opacity-75"
+              accessibilityRole="button"
+              accessibilityLabel="Return to today">
+              <Text className="text-xs font-bold text-sage dark:text-sage-dark">
+                Back to Today
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         {loading ? (
           <HomeSkeleton />
@@ -206,40 +259,42 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            {/* Next Important Action Hero Card */}
-            {isMultiMedicineGroup ? (
-              <View className="rounded-2xl border-2 border-sage dark:border-sage-dark bg-sage-tint dark:bg-sage-dark-tint p-4 mt-3 mb-2 gap-2 overflow-hidden">
+            {/* ----------------------------------------------------------- */}
+            {/* Hero Card: Next Routine Slot or Completed Status             */}
+            {/* ----------------------------------------------------------- */}
+            {nextPendingGroup ? (
+              <View className="rounded-2xl border-2 border-sage dark:border-sage-dark bg-sage-tint dark:bg-sage-dark-tint p-4 mt-2 mb-2.5 gap-2.5 overflow-hidden">
                 <View className="flex-row justify-between items-start gap-2">
                   <View className="flex-row items-center gap-1.5 flex-1 min-w-0 flex-wrap">
                     <Ionicons name="notifications" size={14} color={colors.primary} />
                     <Text className="text-[13px] font-bold tracking-wider text-sage dark:text-sage-dark uppercase">
-                      {nextPendingDose.timeSlot} Routine
+                      {isSelectedToday ? 'NEXT ROUTINE' : `${nextPendingGroup.slotTitle.toUpperCase()}`}
                     </Text>
-                    <View className="bg-sage/15 dark:bg-sage/25 px-2.5 py-1 rounded-xl">
+                    <View className="bg-sage/15 dark:bg-sage/25 px-2.5 py-0.5 rounded-xl">
                       <Text className="text-xs font-bold text-sage dark:text-sage-dark">
-                        {sameSlotPendingDoses.length} Meds
+                        {nextPendingGroup.doses.length} {nextPendingGroup.doses.length === 1 ? 'Med' : 'Meds'}
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row items-center gap-1 shrink-0 bg-sage/10 dark:bg-sage/20 px-2.5 py-1 rounded-xl">
                     <Ionicons name="time-outline" size={14} color={colors.primary} />
                     <Text className="text-sm font-bold text-sage dark:text-sage-dark">
-                      {formatTo12Hour(nextPendingDose.reminderTime)}
+                      {nextPendingGroup.formattedTime}
                     </Text>
                   </View>
                 </View>
 
                 <Text className="text-xl font-bold text-charcoal dark:text-charcoal-dark">
-                  Time for your {nextPendingDose.timeSlot} medicines
+                  Time for your {nextPendingGroup.slotTitle}
                 </Text>
 
-                {/* List of medicines to take together */}
-                <View className="gap-2 my-1 bg-card/90 dark:bg-card-dark p-3.5 rounded-xl border border-subtle-border dark:border-subtle-border-dark">
-                  {sameSlotPendingDoses.map((dose) => (
+                {/* List of medicines to take together in this slot */}
+                <View className="gap-2 my-0.5 bg-card/90 dark:bg-card-dark p-3.5 rounded-xl border border-subtle-border dark:border-subtle-border-dark">
+                  {nextPendingGroup.doses.map((dose) => (
                     <View key={dose.scheduleId} className="flex-row items-center justify-between gap-2">
                       <View className="flex-row items-center gap-2 flex-1 min-w-0 pr-1">
                         <View className="w-2.5 h-2.5 rounded-full bg-sage shrink-0" />
-                        <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark flex-1" numberOfLines={2}>
+                        <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark flex-1" numberOfLines={1}>
                           {dose.medicineName}
                         </Text>
                       </View>
@@ -252,71 +307,39 @@ export default function HomeScreen() {
 
                 <View className="mt-1">
                   <PrimaryButton
-                    label={`Take All ${sameSlotPendingDoses.length} Medicines Now`}
+                    label={
+                      nextPendingGroup.doses.length === 1
+                        ? 'Take Medicine Now'
+                        : `Take All ${nextPendingGroup.doses.length} Medicines Now`
+                    }
                     icon={<Ionicons name="checkmark-done-sharp" size={22} color="#FFFFFF" />}
                     variant="primary"
-                    onPress={() => handleTakeAllSameSlot(sameSlotPendingDoses)}
-                    className="min-h-[48px]"
-                  />
-                </View>
-              </View>
-            ) : nextPendingDose ? (
-              <View className="rounded-2xl border-2 border-sage dark:border-sage-dark bg-sage-tint dark:bg-sage-dark-tint p-4 mt-3 mb-2 gap-1.5 overflow-hidden">
-                <View className="flex-row justify-between items-center gap-2">
-                  <View className="flex-row items-center gap-1 flex-1 min-w-0">
-                    <Ionicons name="notifications" size={14} color={colors.primary} />
-                    <Text className="text-[13px] font-bold tracking-wider text-sage dark:text-sage-dark">
-                      NEXT DOSE
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center gap-1 shrink-0 bg-sage/10 dark:bg-sage/20 px-2.5 py-1 rounded-xl">
-                    <Ionicons name="time-outline" size={15} color={colors.primary} />
-                    <Text className="text-base font-bold text-sage dark:text-sage-dark">
-                      {formatTo12Hour(nextPendingDose.reminderTime)}
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-2xl font-bold text-charcoal dark:text-charcoal-dark">
-                  {nextPendingDose.medicineName}
-                </Text>
-                <Text className="text-lg font-bold text-terracotta dark:text-terracotta-dark">
-                  {nextPendingDose.dosage}
-                </Text>
-                {nextPendingDose.instructions ? (
-                  <View className="flex-row items-center gap-1.5 mt-0.5">
-                    <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-                    <Text className="text-[15px] font-medium text-umber dark:text-umber-dark flex-1">
-                      {nextPendingDose.instructions}
-                    </Text>
-                  </View>
-                ) : null}
-                <View className="mt-2">
-                  <PrimaryButton
-                    label="Take Medicine Now"
-                    icon={<Ionicons name="checkmark-sharp" size={22} color="#FFFFFF" />}
-                    variant="primary"
-                    onPress={() => handleMarkTaken(nextPendingDose)}
+                    onPress={() => handleTakeAllSlot(nextPendingGroup.doses)}
                     className="min-h-[48px]"
                   />
                 </View>
               </View>
             ) : totalMeds > 0 ? (
-              <View className="flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-herbal dark:border-herbal-dark bg-herbal-tint dark:bg-herbal-dark-tint p-4 mt-3 mb-2">
+              <View className="flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-herbal dark:border-herbal-dark bg-herbal-tint dark:bg-herbal-dark-tint p-4 mt-2 mb-2.5">
                 <Ionicons name="checkmark-done-circle" size={36} color={colors.success} />
                 <View className="flex-1 gap-0.5">
                   <Text className="text-lg font-bold text-herbal dark:text-herbal-dark">
                     All medicines completed!
                   </Text>
                   <Text className="text-sm font-medium leading-5 text-umber dark:text-umber-dark">
-                    Wonderful job today, Mom. Rest easy and stay hydrated.
+                    {isSelectedToday
+                      ? 'Wonderful job today, Mom. Rest easy and stay hydrated.'
+                      : `All ${totalMeds} medicines recorded for ${formatYMDToDisplay(selectedDateYMD)}.`}
                   </Text>
                 </View>
               </View>
             ) : null}
 
-            {/* Today's Medicines Section */}
+            {/* ----------------------------------------------------------- */}
+            {/* Grouped Medicine Cards Section (Single Card per Routine)     */}
+            {/* ----------------------------------------------------------- */}
             <SectionHeader
-              title="Today's Medicines"
+              title={isSelectedToday ? "Today's Medicines" : `${formatYMDToDisplay(selectedDateYMD)}'s Medicines`}
               subtitle={totalMeds > 0 ? `${completedMeds} of ${totalMeds} taken` : undefined}
               rightElement={
                 <PrimaryButton
@@ -329,7 +352,7 @@ export default function HomeScreen() {
               }
             />
 
-            {doses.length === 0 ? (
+            {slotGroups.length === 0 ? (
               <EmptyState
                 iconName="pill"
                 title="No medicines scheduled yet"
@@ -338,22 +361,27 @@ export default function HomeScreen() {
                 onAction={() => setIsAddModalOpen(true)}
               />
             ) : (
-              doses.map((dose) => (
-                <MedicineCard
-                  key={dose.scheduleId}
-                  dose={dose}
-                  onMarkTaken={handleMarkTaken}
-                  onMarkSkipped={handleMarkSkipped}
+              slotGroups.map((group) => (
+                <MedicineGroupCard
+                  key={group.id}
+                  group={group}
+                  selectedDateYMD={selectedDateYMD}
+                  isToday={isSelectedToday}
+                  onTakeAll={handleTakeAllSlot}
+                  onSkipAll={handleSkipAllSlot}
+                  onToggleDose={handleToggleDose}
                 />
               ))
             )}
 
-            {/* Today's Blood Sugar Section */}
+            {/* ----------------------------------------------------------- */}
+            {/* Blood Sugar Section for the Selected Day                     */}
+            {/* ----------------------------------------------------------- */}
             <SectionHeader
-              title="Today's Blood Sugar"
+              title={isSelectedToday ? "Today's Blood Sugar" : `${formatYMDToDisplay(selectedDateYMD)}'s Sugar`}
               subtitle={
-                todaySugarAvg !== null
-                  ? `Average: ${todaySugarAvg} mg/dL (${todaySugarLogs.length} logged)`
+                daySugarAvg !== null
+                  ? `Average: ${daySugarAvg} mg/dL (${daySugarLogs.length} logged)`
                   : 'Maintain a steady glucose routine'
               }
               rightElement={
@@ -367,14 +395,14 @@ export default function HomeScreen() {
               }
             />
 
-            {todaySugarLogs.length === 0 ? (
+            {daySugarLogs.length === 0 ? (
               <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-1 gap-3 items-center">
                 <View className="w-12 h-12 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark items-center justify-center">
                   <Ionicons name="water-outline" size={24} color={colors.secondary} />
                 </View>
                 <View className="gap-0.5 items-center">
                   <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark text-center">
-                    No sugar checks logged today
+                    No sugar checks logged {isSelectedToday ? 'today' : 'for this day'}
                   </Text>
                   <Text className="text-xs font-medium text-umber dark:text-umber-dark text-center">
                     Check fasting or post-meal glucose to stay on top of your routine.
@@ -390,7 +418,7 @@ export default function HomeScreen() {
               </View>
             ) : (
               <View className="gap-2.5">
-                {todaySugarLogs.map((log) => {
+                {daySugarLogs.map((log) => {
                   const category = getSugarCategory(log.level, log.context);
                   const style = getSugarCategoryStyle(category);
                   const dateObj = new Date(log.loggedAt);
@@ -430,7 +458,7 @@ export default function HomeScreen() {
                               {style.label}
                             </Text>
                           </View>
-                          <Ionicons name="pencil" size={18} color="#8E867E" />
+                          <Ionicons name="pencil" size={18} color={colors.textSecondary} />
                         </View>
                       </View>
                     </Pressable>
