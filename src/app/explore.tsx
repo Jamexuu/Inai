@@ -20,7 +20,7 @@ import {
   MedicinesSkeleton,
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
-import { formatTo12Hour } from '@/utils/date.utils';
+import { formatTo12Hour, formatDaysOfWeekSummary } from '@/utils/date.utils';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function MedicinesScreen() {
@@ -231,10 +231,13 @@ export default function MedicinesScreen() {
                     {med.schedules.map((s) => (
                       <View
                         key={s.id}
-                        className="flex-row items-center gap-1 px-3 py-1.5 rounded-xl border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark">
+                        className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl border border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark">
                         <Ionicons name="time-outline" size={14} color={colors.primary} />
                         <Text className="text-[13px] font-bold text-sage dark:text-sage-dark">
                           {formatTo12Hour(s.reminderTime)} ({s.timeSlot.charAt(0).toUpperCase() + s.timeSlot.slice(1)})
+                        </Text>
+                        <Text className="text-[12px] font-medium text-umber dark:text-umber-dark">
+                          • {formatDaysOfWeekSummary(s.daysOfWeek)}
                         </Text>
                       </View>
                     ))}

@@ -1,5 +1,6 @@
 import { getDatabase } from '@/database/database';
 import { MedicineDoseStatus, MedicineLog, TodayMedicineDose } from '@/types';
+import { getDayCodeFromDate, isScheduledOnDay } from '@/utils/date.utils';
 
 export interface DayDoseCount {
   dateYMD: string;
@@ -104,6 +105,7 @@ export class MedicineLogRepository implements IMedicineLogRepository {
       instructions: string | null;
       time_slot: string;
       reminder_time: string;
+      days_of_week: string;
       log_id: string | null;
       log_status: string | null;
       log_time: string | null;
@@ -116,6 +118,7 @@ export class MedicineLogRepository implements IMedicineLogRepository {
         m.instructions AS instructions,
         s.time_slot AS time_slot,
         s.reminder_time AS reminder_time,
+        s.days_of_week AS days_of_week,
         l.id AS log_id,
         l.status AS log_status,
         l.logged_at AS log_time
@@ -127,7 +130,10 @@ export class MedicineLogRepository implements IMedicineLogRepository {
       [`${datePrefix}%`]
     );
 
-    return rows.map((r) => ({
+    const targetDayCode = getDayCodeFromDate(datePrefix);
+    const matchingRows = rows.filter((r) => r.log_id || isScheduledOnDay(r.days_of_week, targetDayCode));
+
+    return matchingRows.map((r) => ({
       scheduleId: r.schedule_id,
       medicineId: r.medicine_id,
       medicineName: r.medicine_name,
@@ -144,14 +150,13 @@ export class MedicineLogRepository implements IMedicineLogRepository {
   async getWeekDosesStatus(startDateYMD: string, endDateYMD: string): Promise<Record<string, DayDoseCount>> {
     const db = getDatabase();
 
-    // 1. Get total number of active schedules per day
-    const schedulesCountResult = await db.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count 
+    // 1. Get active schedules to calculate scheduled count per day based on days_of_week
+    const activeSchedules = await db.getAllAsync<{ days_of_week: string }>(
+      `SELECT s.days_of_week 
        FROM medicine_schedules s
        JOIN medicines m ON s.medicine_id = m.id
        WHERE m.is_active = 1 AND s.is_active = 1;`
     );
-    const totalScheduled = schedulesCountResult?.count || 0;
 
     // 2. Query logged statuses grouped by date prefix
     const rows = await db.getAllAsync<{
@@ -173,10 +178,14 @@ export class MedicineLogRepository implements IMedicineLogRepository {
     for (const r of rows) {
       const taken = Number(r.taken_count) || 0;
       const skipped = Number(r.skipped_count) || 0;
-      const isAllTaken = totalScheduled > 0 && taken >= totalScheduled;
+      const dayCode = getDayCodeFromDate(r.date_prefix);
+      const dayScheduledCount = activeSchedules.filter((s) =>
+        isScheduledOnDay(s.days_of_week, dayCode)
+      ).length;
+      const isAllTaken = dayScheduledCount > 0 && taken >= dayScheduledCount;
       result[r.date_prefix] = {
         dateYMD: r.date_prefix,
-        totalScheduled,
+        totalScheduled: dayScheduledCount,
         takenCount: taken,
         skippedCount: skipped,
         isAllTaken,

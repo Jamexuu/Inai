@@ -16,7 +16,18 @@ import { MedicineWithSchedules, TimeSlot } from '@/types';
 import { PrimaryButton, ScrollableTimePickerModal } from './ui';
 import { medicineService } from '@/services/medicine.service';
 import { useAppStore } from '@/store/app.store';
-import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
+import {
+  formatTo12Hour,
+  parseTo24Hour,
+  ALL_DAYS,
+  WEEKDAYS,
+  WEEKENDS,
+  DAY_LABELS,
+  DayCode,
+  parseDaysOfWeekString,
+  serializeDaysOfWeek,
+  formatDaysOfWeekSummary,
+} from '@/utils/date.utils';
 import { useTheme } from '@/hooks/use-theme';
 
 interface AddMedicineModalProps {
@@ -59,6 +70,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
   // Schedule fields
   const [timeSlot, setTimeSlot] = useState<TimeSlot>('morning');
   const [reminderTime, setReminderTime] = useState(TIME_SLOT_DEFAULTS.morning);
+  const [selectedDays, setSelectedDays] = useState<DayCode[]>(ALL_DAYS);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,9 +90,11 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
           const s = initialMedicine.schedules[0];
           setTimeSlot(s.timeSlot);
           setReminderTime(formatTo12Hour(s.reminderTime));
+          setSelectedDays(parseDaysOfWeekString(s.daysOfWeek));
         } else {
           setTimeSlot('morning');
           setReminderTime(TIME_SLOT_DEFAULTS.morning);
+          setSelectedDays(ALL_DAYS);
         }
       } else {
         // Load cabinet medicines to check if user has existing ones
@@ -100,6 +114,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
         setNotes('');
         setTimeSlot('morning');
         setReminderTime(TIME_SLOT_DEFAULTS.morning);
+        setSelectedDays(ALL_DAYS);
       }
     }
   }, [visible, initialMedicine, initialMode]);
@@ -108,6 +123,25 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
     setTimeSlot(slot);
     setReminderTime(TIME_SLOT_DEFAULTS[slot]);
   };
+
+  const handleToggleDay = (day: DayCode) => {
+    if (selectedDays.includes(day)) {
+      if (selectedDays.length === 1) {
+        setError('Please select at least one day for this medicine.');
+        return;
+      }
+      setError(null);
+      setSelectedDays(selectedDays.filter((d) => d !== day));
+    } else {
+      setError(null);
+      setSelectedDays([...selectedDays, day]);
+    }
+  };
+
+  const isEveryDay = selectedDays.length === 7;
+  const isWeekdays = selectedDays.length === 5 && WEEKDAYS.every((d) => selectedDays.includes(d));
+  const isWeekends = selectedDays.length === 2 && WEEKENDS.every((d) => selectedDays.includes(d));
+  const serializedDays = serializeDaysOfWeek(selectedDays);
 
   const handleSave = async () => {
     setError(null);
@@ -138,6 +172,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
             {
               timeSlot,
               reminderTime: canonicalReminderTime,
+              daysOfWeek: serializedDays,
             },
           ]
         );
@@ -167,6 +202,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
           medicineId: selectedMedicineId,
           timeSlot,
           reminderTime: canonicalReminderTime,
+          daysOfWeek: serializedDays,
         });
 
         triggerRefresh();
@@ -199,6 +235,7 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
             {
               timeSlot,
               reminderTime: canonicalReminderTime,
+              daysOfWeek: serializedDays,
             },
           ],
         });
@@ -432,6 +469,103 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
                 </View>
               </View>
             )}
+
+            {/* Days of Week Selector */}
+            <View className="gap-2">
+              <View className="flex-row items-center justify-between px-0.5">
+                <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark">
+                  Days to Take
+                </Text>
+                <Text className="text-xs font-bold text-sage dark:text-sage-dark">
+                  {formatDaysOfWeekSummary(serializedDays)}
+                </Text>
+              </View>
+
+              {/* Quick Presets */}
+              <View className="flex-row gap-2">
+                <Pressable
+                  onPress={() => {
+                    setError(null);
+                    setSelectedDays(ALL_DAYS);
+                  }}
+                  className={`flex-1 py-2 px-1 rounded-xl border-[1.5px] items-center justify-center min-h-[44px] ${
+                    isEveryDay
+                      ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                      : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
+                  }`}>
+                  <Text
+                    className={`text-xs font-bold ${
+                      isEveryDay ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
+                    }`}>
+                    Every Day
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    setError(null);
+                    setSelectedDays(WEEKDAYS);
+                  }}
+                  className={`flex-1 py-2 px-1 rounded-xl border-[1.5px] items-center justify-center min-h-[44px] ${
+                    isWeekdays
+                      ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                      : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
+                  }`}>
+                  <Text
+                    className={`text-xs font-bold ${
+                      isWeekdays ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
+                    }`}>
+                    Weekdays
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    setError(null);
+                    setSelectedDays(WEEKENDS);
+                  }}
+                  className={`flex-1 py-2 px-1 rounded-xl border-[1.5px] items-center justify-center min-h-[44px] ${
+                    isWeekends
+                      ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                      : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
+                  }`}>
+                  <Text
+                    className={`text-xs font-bold ${
+                      isWeekends ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
+                    }`}>
+                    Weekends
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Individual 7 Day Chips */}
+              <View className="flex-row justify-between gap-1 mt-0.5">
+                {ALL_DAYS.map((day) => {
+                  const isSelected = selectedDays.includes(day);
+                  const label = DAY_LABELS[day];
+                  return (
+                    <Pressable
+                      key={day}
+                      onPress={() => handleToggleDay(day)}
+                      className={`flex-1 min-h-[44px] py-1.5 rounded-xl border-[1.5px] items-center justify-center ${
+                        isSelected
+                          ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
+                          : 'bg-surface dark:bg-surface-dark border-subtle-border dark:border-subtle-border-dark active:bg-card-selected'
+                      }`}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={`${label.full}, ${isSelected ? 'selected' : 'not selected'}`}>
+                      <Text
+                        className={`text-[13px] font-bold ${
+                          isSelected ? 'text-white' : 'text-charcoal dark:text-charcoal-dark'
+                        }`}>
+                        {label.short}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
 
             {/* Time Slot Selector */}
             <View className="gap-1">
