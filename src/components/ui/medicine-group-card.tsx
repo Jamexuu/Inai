@@ -5,6 +5,7 @@ import { TodayMedicineDose } from '@/types';
 import { MedicineRoutineSlotGroup } from '@/utils/medicine-group.utils';
 import { useTheme } from '@/hooks/use-theme';
 import { PrimaryButton } from './primary-button';
+import { ScalePressable } from './scale-pressable';
 import { formatTo12Hour } from '@/utils/date.utils';
 
 interface MedicineGroupCardProps {
@@ -12,7 +13,7 @@ interface MedicineGroupCardProps {
   selectedDateYMD?: string;
   isToday?: boolean;
   onTakeAll: (doses: TodayMedicineDose[]) => void;
-  onSkipAll: (doses: TodayMedicineDose[]) => void;
+  onSkipAll: (doses: TodayMedicineDose[], routineName: string) => void;
   onToggleDose: (dose: TodayMedicineDose) => void;
 }
 
@@ -98,9 +99,11 @@ export const MedicineGroupCard: React.FC<MedicineGroupCardProps> = ({
           const isDoseSkipped = dose.status === 'skipped';
 
           return (
-            <Pressable
+            <ScalePressable
               key={dose.scheduleId}
               onPress={() => onToggleDose(dose)}
+              scaleTo={0.98}
+              opacityTo={0.88}
               accessibilityRole="button"
               accessibilityLabel={`${dose.medicineName}, ${dose.dosage}. Status: ${dose.status}. Tap to toggle.`}
               className="min-h-[56px] p-3.5 flex-row items-center justify-between gap-3 active:bg-card-selected">
@@ -160,14 +163,14 @@ export const MedicineGroupCard: React.FC<MedicineGroupCardProps> = ({
                   </Text>
                 )}
               </View>
-            </Pressable>
+            </ScalePressable>
           );
         })}
       </View>
 
       {/* Action Footer: Take All / Skip All / Completed Confirmation */}
       {hasPending ? (
-        <View className="flex-row items-center gap-2.5 pt-1">
+        <View className="flex-row items-center gap-2 pt-1">
           <PrimaryButton
             label={
               group.doses.length === 1
@@ -176,17 +179,19 @@ export const MedicineGroupCard: React.FC<MedicineGroupCardProps> = ({
                 ? `Take Remaining (${group.pendingCount})`
                 : `Take All (${group.totalCount} Meds)`
             }
-            icon={<Ionicons name="checkmark-sharp" size={20} color="#FFFFFF" />}
+            icon={<Ionicons name="checkmark-sharp" size={18} color="#FFFFFF" />}
             variant="primary"
             onPress={() => onTakeAll(pendingDoses)}
-            className="flex-[2] min-h-[48px]"
+            className="flex-1 min-h-[48px] px-3"
+            numberOfLines={1}
           />
           <PrimaryButton
             label="Skip All"
-            icon={<Ionicons name="close" size={18} color={colors.primary} />}
+            icon={<Ionicons name="close" size={17} color={colors.secondary} />}
             variant="outline"
-            onPress={() => onSkipAll(pendingDoses)}
-            className="flex-1 min-h-[48px]"
+            onPress={() => onSkipAll(pendingDoses, group.slotTitle)}
+            className="min-h-[48px] px-3.5 shrink-0"
+            numberOfLines={1}
           />
         </View>
       ) : (
@@ -203,18 +208,20 @@ export const MedicineGroupCard: React.FC<MedicineGroupCardProps> = ({
                 : 'All medicines in this routine marked as skipped'}
             </Text>
           </View>
-          <Pressable
+          <ScalePressable
             onPress={() => {
               // Untoggle / reset all back to pending
               group.doses.forEach((d) => onToggleDose(d));
             }}
+            scaleTo={0.94}
+            opacityTo={0.75}
             className="min-h-[44px] min-w-[64px] items-center justify-center px-2 active:opacity-75"
             accessibilityRole="button"
             accessibilityLabel="Change status of medicines in this routine">
             <Text className="text-xs font-bold text-sage dark:text-sage-dark underline">
               Change
             </Text>
-          </Pressable>
+          </ScalePressable>
         </View>
       )}
     </View>

@@ -19,8 +19,9 @@ import {
   EmptyState,
   HomeSkeleton,
   MedicineGroupCard,
+  ConfirmationDialog,
+  ScalePressable,
 } from '@/components/ui';
-import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { AddEditSugarModal } from '@/components/add-edit-sugar-modal';
 import { formatTo12Hour, formatDateToYMD } from '@/utils/date.utils';
 import { groupDosesBySlot } from '@/utils/medicine-group.utils';
@@ -44,9 +45,21 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSugarModalOpen, setIsSugarModalOpen] = useState(false);
   const [selectedSugarLog, setSelectedSugarLog] = useState<BloodSugarLog | null>(null);
+
+  // Skip All confirmation dialog state
+  const [skipConfirmation, setSkipConfirmation] = useState<{
+    isOpen: boolean;
+    doses: TodayMedicineDose[];
+    routineName: string;
+    isSubmitting: boolean;
+  }>({
+    isOpen: false,
+    doses: [],
+    routineName: '',
+    isSubmitting: false,
+  });
 
   // Today's date in YYYY-MM-DD format
   const todayYMD = useMemo(() => formatDateToYMD(new Date()), []);
@@ -102,10 +115,31 @@ export default function HomeScreen() {
     triggerRefresh();
   };
 
-  // Action: Skip all medicines in a slot
-  const handleSkipAllSlot = async (groupDoses: TodayMedicineDose[]) => {
-    await medicineService.markMultipleDosesSkipped(groupDoses, todayYMD);
-    triggerRefresh();
+  // Action: Open custom confirmation before skipping all
+  const handleRequestSkipAllSlot = (groupDoses: TodayMedicineDose[], routineName: string) => {
+    setSkipConfirmation({
+      isOpen: true,
+      doses: groupDoses,
+      routineName,
+      isSubmitting: false,
+    });
+  };
+
+  const handleConfirmSkipAll = async () => {
+    if (skipConfirmation.doses.length === 0) return;
+    setSkipConfirmation((prev) => ({ ...prev, isSubmitting: true }));
+    try {
+      await medicineService.markMultipleDosesSkipped(skipConfirmation.doses, todayYMD);
+      triggerRefresh();
+      setSkipConfirmation({ isOpen: false, doses: [], routineName: '', isSubmitting: false });
+    } catch (err) {
+      console.error('Error skipping doses:', err);
+      setSkipConfirmation((prev) => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
+  const handleCancelSkipAll = () => {
+    setSkipConfirmation({ isOpen: false, doses: [], routineName: '', isSubmitting: false });
   };
 
   // Action: Toggle individual medicine dose
@@ -178,13 +212,14 @@ export default function HomeScreen() {
               {formattedHeaderDate}
             </Text>
           </View>
-          <Pressable
+          <ScalePressable
             onPress={() => router.push('/settings')}
+            scaleTo={0.92}
             className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
             accessibilityRole="button"
             accessibilityLabel="Open settings and display theme">
             <Ionicons name="settings-outline" size={22} color={colors.primary} />
-          </Pressable>
+          </ScalePressable>
         </View>
 
         {loading ? (
@@ -285,24 +320,15 @@ export default function HomeScreen() {
             <SectionHeader
               title="Today's Medicines"
               subtitle={totalMeds > 0 ? `${completedMeds} of ${totalMeds} taken` : undefined}
-              rightElement={
-                <PrimaryButton
-                  label="Add"
-                  icon={<Ionicons name="add-sharp" size={21} color={colors.primary} />}
-                  variant="outline"
-                  onPress={() => setIsAddModalOpen(true)}
-                  className="min-h-[44px] px-4"
-                />
-              }
             />
 
             {slotGroups.length === 0 ? (
               <EmptyState
                 iconName="pill"
                 title="No medicines scheduled for today"
-                description="Add your daily maintenance medicines so Inai can gently remind you at the right time."
-                actionLabel="Add Medicine"
-                onAction={() => setIsAddModalOpen(true)}
+                description="Your daily maintenance medicines appear here automatically on their scheduled days."
+                actionLabel="Manage Cabinet"
+                onAction={() => router.push('/explore')}
               />
             ) : (
               slotGroups.map((group) => (
@@ -312,7 +338,7 @@ export default function HomeScreen() {
                   selectedDateYMD={todayYMD}
                   isToday={true}
                   onTakeAll={handleTakeAllSlot}
-                  onSkipAll={handleSkipAllSlot}
+                  onSkipAll={handleRequestSkipAllSlot}
                   onToggleDose={handleToggleDose}
                 />
               ))
@@ -369,9 +395,10 @@ export default function HomeScreen() {
                   const formattedTime = formatTo12Hour(dateObj);
 
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={log.id}
                       onPress={() => handleOpenEditSugar(log)}
+                      scaleTo={0.98}
                       className="min-h-[58px] rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-3.5 gap-2 active:bg-card-selected"
                       accessibilityRole="button"
                       accessibilityLabel={`Reading ${log.level} mg/dL at ${formattedTime}. Tap to edit.`}>
@@ -405,7 +432,7 @@ export default function HomeScreen() {
                           <Ionicons name="pencil" size={18} color={colors.textSecondary} />
                         </View>
                       </View>
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
               </View>
@@ -414,20 +441,29 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {/* Add Medicine Modal */}
-      <AddMedicineModal
-        visible={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => triggerRefresh()}
-        initialMode="existing"
-      />
-
       {/* Add / Edit Sugar Modal */}
       <AddEditSugarModal
         visible={isSugarModalOpen}
         initialLog={selectedSugarLog}
         onClose={() => setIsSugarModalOpen(false)}
         onSuccess={() => triggerRefresh()}
+      />
+
+      {/* Simple Confirmation Dialog for Skip All */}
+      <ConfirmationDialog
+        visible={skipConfirmation.isOpen}
+        title="Skip this routine?"
+        message={`Skip taking ${
+          skipConfirmation.doses.length === 1
+            ? 'this medicine'
+            : `these ${skipConfirmation.doses.length} medicines`
+        } for ${skipConfirmation.routineName || 'this routine'} today?`}
+        confirmLabel="Skip All"
+        cancelLabel="Cancel"
+        variant="warning"
+        isSubmitting={skipConfirmation.isSubmitting}
+        onConfirm={handleConfirmSkipAll}
+        onCancel={handleCancelSkipAll}
       />
     </SafeAreaView>
   );
