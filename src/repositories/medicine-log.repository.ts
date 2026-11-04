@@ -1,6 +1,15 @@
 import { getDatabase } from '@/database/database';
 import { MedicineDoseStatus, MedicineLog, TodayMedicineDose } from '@/types';
 
+export interface DayDoseCount {
+  dateYMD: string;
+  totalScheduled: number;
+  takenCount: number;
+  skippedCount: number;
+  isAllTaken: boolean;
+  hasActivity: boolean;
+}
+
 export interface IMedicineLogRepository {
   logDose(entry: {
     id: string;
@@ -11,6 +20,7 @@ export interface IMedicineLogRepository {
     notes?: string;
   }): Promise<MedicineLog>;
   getTodayDoses(datePrefix: string): Promise<TodayMedicineDose[]>;
+  getWeekDosesStatus(startDateYMD: string, endDateYMD: string): Promise<Record<string, DayDoseCount>>;
   getRecentLogs(limit?: number): Promise<MedicineLog[]>;
   deleteLog(id: string): Promise<void>;
 }
@@ -55,8 +65,9 @@ export class MedicineLogRepository implements IMedicineLogRepository {
     }
 
     await db.runAsync(
-      `INSERT INTO medicine_logs (id, medicine_id, schedule_id, scheduled_time, logged_at, status, notes, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+      `INSERT INTO medicine_logs (
+        id, medicine_id, schedule_id, scheduled_time, logged_at, status, notes, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         entry.id,
         entry.medicineId,
@@ -130,6 +141,52 @@ export class MedicineLogRepository implements IMedicineLogRepository {
     }));
   }
 
+  async getWeekDosesStatus(startDateYMD: string, endDateYMD: string): Promise<Record<string, DayDoseCount>> {
+    const db = getDatabase();
+
+    // 1. Get total number of active schedules per day
+    const schedulesCountResult = await db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count 
+       FROM medicine_schedules s
+       JOIN medicines m ON s.medicine_id = m.id
+       WHERE m.is_active = 1 AND s.is_active = 1;`
+    );
+    const totalScheduled = schedulesCountResult?.count || 0;
+
+    // 2. Query logged statuses grouped by date prefix
+    const rows = await db.getAllAsync<{
+      date_prefix: string;
+      taken_count: number;
+      skipped_count: number;
+    }>(
+      `SELECT 
+        substr(scheduled_time, 1, 10) as date_prefix,
+        SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken_count,
+        SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped_count
+       FROM medicine_logs
+       WHERE scheduled_time >= ? AND scheduled_time <= ?
+       GROUP BY substr(scheduled_time, 1, 10);`,
+      [`${startDateYMD} 00:00`, `${endDateYMD} 23:59`]
+    );
+
+    const result: Record<string, DayDoseCount> = {};
+    for (const r of rows) {
+      const taken = Number(r.taken_count) || 0;
+      const skipped = Number(r.skipped_count) || 0;
+      const isAllTaken = totalScheduled > 0 && taken >= totalScheduled;
+      result[r.date_prefix] = {
+        dateYMD: r.date_prefix,
+        totalScheduled,
+        takenCount: taken,
+        skippedCount: skipped,
+        isAllTaken,
+        hasActivity: taken > 0 || skipped > 0,
+      };
+    }
+
+    return result;
+  }
+
   async getRecentLogs(limit = 50): Promise<MedicineLog[]> {
     const db = getDatabase();
     const rows = await db.getAllAsync<{
@@ -160,4 +217,3 @@ export class MedicineLogRepository implements IMedicineLogRepository {
     await db.runAsync('DELETE FROM medicine_logs WHERE id = ?;', [id]);
   }
 }
-

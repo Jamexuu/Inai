@@ -210,10 +210,10 @@ export class MedicineService {
     });
   }
 
-  async markMultipleDosesTaken(doses: TodayMedicineDose[]): Promise<void> {
-    const todayPrefix = new Date().toISOString().substring(0, 10);
+  async markMultipleDosesTaken(doses: TodayMedicineDose[], datePrefix?: string): Promise<void> {
+    const prefix = datePrefix ?? new Date().toISOString().substring(0, 10);
     for (const dose of doses) {
-      const scheduledTime = `${todayPrefix} ${dose.reminderTime}`;
+      const scheduledTime = `${prefix} ${dose.reminderTime}`;
       const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       await this.logRepo.logDose({
         id: logId,
@@ -223,6 +223,29 @@ export class MedicineService {
         status: 'taken',
       });
     }
+  }
+
+  async markMultipleDosesSkipped(doses: TodayMedicineDose[], datePrefix?: string): Promise<void> {
+    const prefix = datePrefix ?? new Date().toISOString().substring(0, 10);
+    for (const dose of doses) {
+      const scheduledTime = `${prefix} ${dose.reminderTime}`;
+      const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await this.logRepo.logDose({
+        id: logId,
+        medicineId: dose.medicineId,
+        scheduleId: dose.scheduleId,
+        scheduledTime,
+        status: 'skipped',
+      });
+    }
+  }
+
+  async unmarkDose(logId: string): Promise<void> {
+    await this.logRepo.deleteLog(logId);
+  }
+
+  async getWeekRoutineStatus(startDateYMD: string, endDateYMD: string) {
+    return this.logRepo.getWeekDosesStatus(startDateYMD, endDateYMD);
   }
 
   async syncAllMedicineReminders(): Promise<void> {

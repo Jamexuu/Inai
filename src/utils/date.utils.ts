@@ -204,3 +204,73 @@ export function formatYMDToFullFriendly(ymd: string): string {
   }
   return ymd;
 }
+
+export interface WeekDayItem {
+  date: Date;
+  ymd: string;
+  dayName: string; // 'Mon', 'Tue', ...
+  dayNumber: number; // 1, 2, ...
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+/**
+ * Returns the 7 days of the week (Monday through Sunday) containing the referenceDate.
+ */
+export function getWeekDates(referenceDate: Date = new Date()): WeekDayItem[] {
+  const ref = new Date(referenceDate);
+  const dayOfWeek = ref.getDay(); // 0 is Sunday, 1 is Monday...
+  const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const monday = new Date(ref);
+  monday.setDate(ref.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const todayYMD = formatDateToYMD(new Date());
+
+  const days: WeekDayItem[] = [];
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const ymd = formatDateToYMD(d);
+    days.push({
+      date: d,
+      ymd,
+      dayName: dayNames[i],
+      dayNumber: d.getDate(),
+      isToday: ymd === todayYMD,
+      isFuture: ymd > todayYMD,
+    });
+  }
+
+  return days;
+}
+
+export function getPreviousWeekDate(referenceDate: Date): Date {
+  const d = new Date(referenceDate);
+  d.setDate(d.getDate() - 7);
+  return d;
+}
+
+export function getNextWeekDate(referenceDate: Date): Date {
+  const d = new Date(referenceDate);
+  d.setDate(d.getDate() + 7);
+  return d;
+}
+
+export function formatWeekRangeDisplay(referenceDate: Date): string {
+  const weekDays = getWeekDates(referenceDate);
+  const first = weekDays[0].date;
+  const last = weekDays[6].date;
+
+  const firstMonth = first.toLocaleDateString('en-US', { month: 'short' });
+  const lastMonth = last.toLocaleDateString('en-US', { month: 'short' });
+  const year = last.getFullYear();
+
+  if (firstMonth === lastMonth) {
+    return `${firstMonth} ${first.getDate()} – ${last.getDate()}, ${year}`;
+  }
+  return `${firstMonth} ${first.getDate()} – ${lastMonth} ${last.getDate()}, ${year}`;
+}
+
