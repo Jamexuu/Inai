@@ -19,6 +19,7 @@ import {
   SugarSkeleton,
   HealthBarGraph,
   PaginationControls,
+  ScalePressable,
 } from '@/components/ui';
 import { AddEditSugarModal } from '@/components/add-edit-sugar-modal';
 import { ExportReportModal } from '@/components/export-report-modal';
@@ -129,23 +130,25 @@ export default function SugarScreen() {
 
           <View className="flex-row items-center gap-2">
             {/* Export PDF Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => setIsExportModalOpen(true)}
+              scaleTo={0.92}
               className="min-h-[44px] px-3 flex-row items-center gap-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
               accessibilityRole="button"
               accessibilityLabel="Export blood sugar log as PDF">
               <Ionicons name="document-text-outline" size={18} color={colors.secondary} />
               <Text className="text-xs font-bold text-terracotta dark:text-terracotta-dark">Export PDF</Text>
-            </Pressable>
+            </ScalePressable>
 
             {/* Settings Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => router.push('/settings')}
+              scaleTo={0.92}
               className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
               accessibilityRole="button"
               accessibilityLabel="Open settings">
               <Ionicons name="settings-outline" size={22} color={colors.primary} />
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
 
@@ -192,13 +195,14 @@ export default function SugarScreen() {
                       day: 'numeric',
                     })} at {formatTo12Hour(new Date(latestLog.loggedAt))}
                   </Text>
-                  <Pressable
+                  <ScalePressable
                     onPress={() => handleOpenEdit(latestLog)}
+                    scaleTo={0.92}
                     className="min-h-[44px] min-w-[44px] items-center justify-center -mr-2"
                     accessibilityRole="button"
                     accessibilityLabel="Edit latest reading">
                     <Ionicons name="pencil" size={16} color={colors.primary} />
-                  </Pressable>
+                  </ScalePressable>
                 </View>
               </View>
             ) : null}
@@ -239,9 +243,9 @@ export default function SugarScreen() {
             {logs.length === 0 ? (
               <EmptyState
                 iconName="water-outline"
-                title="No blood sugar logs yet"
-                description="Recording blood sugar regularly helps maintain a healthy routine for Mom."
-                actionLabel="Log Blood Sugar"
+                title="No Blood Sugar Readings Yet"
+                description="Log fasting or 2-hour post-meal glucose readings to track Mom's health steadily."
+                actionLabel="Record First Reading"
                 onAction={handleOpenAdd}
               />
             ) : (
@@ -257,9 +261,10 @@ export default function SugarScreen() {
                   const formattedTime = formatTo12Hour(dateObj);
 
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={log.id}
                       onPress={() => handleOpenEdit(log)}
+                      scaleTo={0.98}
                       className="min-h-[64px] rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 gap-2.5 active:bg-card-selected"
                       accessibilityRole="button"
                       accessibilityLabel={`Reading ${log.level} mg/dL on ${formattedDate}. Tap to edit.`}>
@@ -300,7 +305,7 @@ export default function SugarScreen() {
                           Note: {log.notes}
                         </Text>
                       ) : null}
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
 

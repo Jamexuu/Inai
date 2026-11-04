@@ -8,7 +8,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +17,8 @@ import { useAppStore } from '@/store/app.store';
 import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
 import { PrimaryButton } from './ui/primary-button';
 import { ScrollableTimePickerModal } from './ui/scrollable-time-picker-modal';
+import { ConfirmationDialog } from './ui/confirmation-dialog';
+import { ScalePressable } from './ui/scale-pressable';
 import { useTheme } from '@/hooks/use-theme';
 
 interface AddEditMealModalProps {
@@ -59,6 +60,7 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -127,32 +129,24 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
 
   const handleDelete = () => {
     if (!initialMeal) return;
+    setShowDeleteConfirm(true);
+  };
 
-    Alert.alert(
-      'Delete Meal',
-      `Are you sure you want to remove "${initialMeal.label}" from your daily schedule?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              await mealService.deleteMeal(initialMeal.id);
-              triggerRefresh();
-              onSuccess();
-              onClose();
-            } catch (e) {
-              console.error('Error deleting meal:', e);
-              setError("Couldn't delete meal. Please try again.");
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleConfirmDelete = async () => {
+    if (!initialMeal) return;
+    setIsSubmitting(true);
+    try {
+      await mealService.deleteMeal(initialMeal.id);
+      triggerRefresh();
+      setShowDeleteConfirm(false);
+      onSuccess();
+      onClose();
+    } catch (e) {
+      console.error('Error deleting meal:', e);
+      setError("Couldn't delete meal. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -186,13 +180,14 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
                     : 'Schedule a calm, daily meal routine.'}
                 </Text>
               </View>
-              <Pressable
+              <ScalePressable
                 onPress={onClose}
+                scaleTo={0.9}
                 className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
                 accessibilityLabel="Close modal"
                 accessibilityRole="button">
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {error ? (
@@ -210,9 +205,10 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
                 {MEAL_TYPES.map((cfg) => {
                   const isSelected = mealType === cfg.type;
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={cfg.type}
                       onPress={() => handleMealTypeSelect(cfg.type, cfg.label, cfg.defaultTime)}
+                      scaleTo={0.92}
                       className={`flex-1 py-2 rounded-xl border-[1.5px] items-center justify-center gap-1 ${
                         isSelected
                           ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
@@ -229,7 +225,7 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
                         }`}>
                         {cfg.label}
                       </Text>
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
               </View>
@@ -254,8 +250,9 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
               <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                 Target Time
               </Text>
-              <Pressable
+              <ScalePressable
                 onPress={() => setIsTimePickerOpen(true)}
+                scaleTo={0.97}
                 className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 flex-row items-center justify-between active:bg-card-selected"
                 accessibilityRole="button"
                 accessibilityLabel={`Meal time: ${targetTime}. Tap to change.`}>
@@ -269,7 +266,7 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
                   <Text className="text-xs font-semibold text-umber dark:text-umber-dark">Change</Text>
                   <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
                 </View>
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {/* Notes */}
@@ -337,6 +334,19 @@ export const AddEditMealModal: React.FC<AddEditMealModalProps> = ({
         value={targetTime}
         onConfirm={(newTime) => setTargetTime(newTime)}
         onClose={() => setIsTimePickerOpen(false)}
+      />
+
+      {/* Simple Confirmation Modal for Deleting Meal */}
+      <ConfirmationDialog
+        visible={showDeleteConfirm}
+        title="Remove meal?"
+        message={`Remove "${initialMeal?.label}" from your schedule?`}
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        variant="danger"
+        isSubmitting={isSubmitting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </Modal>
   );

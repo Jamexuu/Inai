@@ -1,5 +1,15 @@
 import { getDatabase } from '@/database/database';
 import { MedicineDoseStatus, MedicineLog, TodayMedicineDose } from '@/types';
+import { getDayCodeFromDate, isScheduledOnDay } from '@/utils/date.utils';
+
+export interface DayDoseCount {
+  dateYMD: string;
+  totalScheduled: number;
+  takenCount: number;
+  skippedCount: number;
+  isAllTaken: boolean;
+  hasActivity: boolean;
+}
 
 export interface IMedicineLogRepository {
   logDose(entry: {
@@ -11,6 +21,7 @@ export interface IMedicineLogRepository {
     notes?: string;
   }): Promise<MedicineLog>;
   getTodayDoses(datePrefix: string): Promise<TodayMedicineDose[]>;
+  getWeekDosesStatus(startDateYMD: string, endDateYMD: string): Promise<Record<string, DayDoseCount>>;
   getRecentLogs(limit?: number): Promise<MedicineLog[]>;
   deleteLog(id: string): Promise<void>;
 }
@@ -55,8 +66,9 @@ export class MedicineLogRepository implements IMedicineLogRepository {
     }
 
     await db.runAsync(
-      `INSERT INTO medicine_logs (id, medicine_id, schedule_id, scheduled_time, logged_at, status, notes, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+      `INSERT INTO medicine_logs (
+        id, medicine_id, schedule_id, scheduled_time, logged_at, status, notes, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
       [
         entry.id,
         entry.medicineId,
@@ -93,6 +105,7 @@ export class MedicineLogRepository implements IMedicineLogRepository {
       instructions: string | null;
       time_slot: string;
       reminder_time: string;
+      days_of_week: string;
       log_id: string | null;
       log_status: string | null;
       log_time: string | null;
@@ -105,6 +118,7 @@ export class MedicineLogRepository implements IMedicineLogRepository {
         m.instructions AS instructions,
         s.time_slot AS time_slot,
         s.reminder_time AS reminder_time,
+        s.days_of_week AS days_of_week,
         l.id AS log_id,
         l.status AS log_status,
         l.logged_at AS log_time
@@ -116,7 +130,10 @@ export class MedicineLogRepository implements IMedicineLogRepository {
       [`${datePrefix}%`]
     );
 
-    return rows.map((r) => ({
+    const targetDayCode = getDayCodeFromDate(datePrefix);
+    const matchingRows = rows.filter((r) => r.log_id || isScheduledOnDay(r.days_of_week, targetDayCode));
+
+    return matchingRows.map((r) => ({
       scheduleId: r.schedule_id,
       medicineId: r.medicine_id,
       medicineName: r.medicine_name,
@@ -128,6 +145,55 @@ export class MedicineLogRepository implements IMedicineLogRepository {
       loggedAt: r.log_time ?? undefined,
       logId: r.log_id ?? undefined,
     }));
+  }
+
+  async getWeekDosesStatus(startDateYMD: string, endDateYMD: string): Promise<Record<string, DayDoseCount>> {
+    const db = getDatabase();
+
+    // 1. Get active schedules to calculate scheduled count per day based on days_of_week
+    const activeSchedules = await db.getAllAsync<{ days_of_week: string }>(
+      `SELECT s.days_of_week 
+       FROM medicine_schedules s
+       JOIN medicines m ON s.medicine_id = m.id
+       WHERE m.is_active = 1 AND s.is_active = 1;`
+    );
+
+    // 2. Query logged statuses grouped by date prefix
+    const rows = await db.getAllAsync<{
+      date_prefix: string;
+      taken_count: number;
+      skipped_count: number;
+    }>(
+      `SELECT 
+        substr(scheduled_time, 1, 10) as date_prefix,
+        SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken_count,
+        SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped_count
+       FROM medicine_logs
+       WHERE scheduled_time >= ? AND scheduled_time <= ?
+       GROUP BY substr(scheduled_time, 1, 10);`,
+      [`${startDateYMD} 00:00`, `${endDateYMD} 23:59`]
+    );
+
+    const result: Record<string, DayDoseCount> = {};
+    for (const r of rows) {
+      const taken = Number(r.taken_count) || 0;
+      const skipped = Number(r.skipped_count) || 0;
+      const dayCode = getDayCodeFromDate(r.date_prefix);
+      const dayScheduledCount = activeSchedules.filter((s) =>
+        isScheduledOnDay(s.days_of_week, dayCode)
+      ).length;
+      const isAllTaken = dayScheduledCount > 0 && taken >= dayScheduledCount;
+      result[r.date_prefix] = {
+        dateYMD: r.date_prefix,
+        totalScheduled: dayScheduledCount,
+        takenCount: taken,
+        skippedCount: skipped,
+        isAllTaken,
+        hasActivity: taken > 0 || skipped > 0,
+      };
+    }
+
+    return result;
   }
 
   async getRecentLogs(limit = 50): Promise<MedicineLog[]> {
@@ -160,4 +226,3 @@ export class MedicineLogRepository implements IMedicineLogRepository {
     await db.runAsync('DELETE FROM medicine_logs WHERE id = ?;', [id]);
   }
 }
-

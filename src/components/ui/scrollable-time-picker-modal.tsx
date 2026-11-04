@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { parse12HourParts } from '@/utils/date.utils';
 import { PrimaryButton } from './primary-button';
+import { ScalePressable } from './scale-pressable';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ScrollableTimePickerModalProps {
@@ -94,13 +95,14 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
                 Scroll or tap to choose the exact time.
               </Text>
             </View>
-            <Pressable
+            <ScalePressable
               onPress={onClose}
+              scaleTo={0.9}
               className="p-2 -mr-2 active:opacity-70"
               accessibilityLabel="Close time picker"
               accessibilityRole="button">
               <Ionicons name="close" size={24} color={colors.textSecondary} />
-            </Pressable>
+            </ScalePressable>
           </View>
 
           {/* Time Preview Card */}
@@ -196,9 +198,10 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
                 {PERIODS.map((p) => {
                   const isSelected = selectedPeriod === p;
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={p}
                       onPress={() => setSelectedPeriod(p)}
+                      scaleTo={0.92}
                       style={{ height: ITEM_HEIGHT }}
                       className={`rounded-xl items-center justify-center ${
                         isSelected
@@ -213,7 +216,7 @@ export const ScrollableTimePickerModal: React.FC<ScrollableTimePickerModalProps>
                         }`}>
                         {p}
                       </Text>
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
               </View>

@@ -8,7 +8,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,8 +23,10 @@ import {
 } from '@/utils/date.utils';
 import { getSugarCategory, getSugarCategoryStyle, getSugarContextLabel } from '@/utils/sugar.utils';
 import { PrimaryButton } from './ui/primary-button';
+import { ScalePressable } from './ui/scale-pressable';
 import { ScrollableTimePickerModal } from './ui/scrollable-time-picker-modal';
 import { DatePickerModal } from './ui/date-picker-modal';
+import { ConfirmationDialog } from './ui/confirmation-dialog';
 import { useTheme } from '@/hooks/use-theme';
 
 interface AddEditSugarModalProps {
@@ -67,6 +68,7 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -148,32 +150,24 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
 
   const handleDelete = () => {
     if (!initialLog) return;
+    setShowDeleteConfirm(true);
+  };
 
-    Alert.alert(
-      'Delete Blood Sugar Record',
-      `Are you sure you want to delete this ${initialLog.level} mg/dL reading?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              await bloodSugarService.deleteLog(initialLog.id);
-              triggerRefresh();
-              onSuccess();
-              onClose();
-            } catch (e) {
-              console.error('Error deleting blood sugar record:', e);
-              setError("Couldn't delete record. Please try again.");
-            } finally {
-              setIsSubmitting(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleConfirmDelete = async () => {
+    if (!initialLog) return;
+    setIsSubmitting(true);
+    try {
+      await bloodSugarService.deleteLog(initialLog.id);
+      triggerRefresh();
+      setShowDeleteConfirm(false);
+      onSuccess();
+      onClose();
+    } catch (e) {
+      console.error('Error deleting blood sugar record:', e);
+      setError("Couldn't delete record. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -205,13 +199,14 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                   Record glucose level and measurement context.
                 </Text>
               </View>
-              <Pressable
+              <ScalePressable
                 onPress={onClose}
+                scaleTo={0.9}
                 className="min-w-[44px] min-h-[44px] items-center justify-center -mr-1.5 active:opacity-70"
                 accessibilityRole="button"
                 accessibilityLabel="Close modal">
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {/* Success Banner for Historical Batch Logging */}
@@ -242,8 +237,9 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
               </View>
 
               <View className="flex-row gap-2">
-                <Pressable
+                <ScalePressable
                   onPress={() => setSelectedDate(todayYMD)}
+                  scaleTo={0.92}
                   className={`flex-1 min-h-[42px] rounded-xl border flex-row items-center justify-center active:opacity-85 ${
                     selectedDate === todayYMD
                       ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
@@ -255,10 +251,11 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                     }`}>
                     Today
                   </Text>
-                </Pressable>
+                </ScalePressable>
 
-                <Pressable
+                <ScalePressable
                   onPress={() => setSelectedDate(yesterdayYMD)}
+                  scaleTo={0.92}
                   className={`flex-1 min-h-[42px] rounded-xl border flex-row items-center justify-center active:opacity-85 ${
                     selectedDate === yesterdayYMD
                       ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
@@ -270,10 +267,11 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                     }`}>
                     Yesterday
                   </Text>
-                </Pressable>
+                </ScalePressable>
 
-                <Pressable
+                <ScalePressable
                   onPress={() => setIsDatePickerOpen(true)}
+                  scaleTo={0.92}
                   className={`flex-1 min-h-[42px] rounded-xl border flex-row items-center justify-center gap-1 px-2 active:opacity-85 ${
                     selectedDate !== todayYMD && selectedDate !== yesterdayYMD
                       ? 'bg-sage dark:bg-sage-dark border-sage dark:border-sage-dark'
@@ -299,7 +297,7 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                       ? formatYMDToDisplay(selectedDate)
                       : 'Past Date'}
                   </Text>
-                </Pressable>
+                </ScalePressable>
               </View>
             </View>
 
@@ -352,9 +350,10 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                 {CONTEXT_OPTIONS.map((ctx) => {
                   const isSelected = context === ctx;
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={ctx}
                       onPress={() => setContext(ctx)}
+                      scaleTo={0.92}
                       accessibilityRole="button"
                       accessibilityLabel={`Select context ${getSugarContextLabel(ctx)}`}
                       className={`min-h-[44px] px-3.5 py-2 rounded-xl border flex-row items-center justify-center ${
@@ -368,7 +367,7 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                         }`}>
                         {getSugarContextLabel(ctx)}
                       </Text>
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
               </View>
@@ -379,8 +378,9 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
               <Text className="text-xs font-bold text-charcoal dark:text-charcoal-dark px-0.5">
                 Measurement Time
               </Text>
-              <Pressable
+              <ScalePressable
                 onPress={() => setIsTimePickerOpen(true)}
+                scaleTo={0.97}
                 className="min-h-[48px] rounded-xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-surface dark:bg-surface-dark px-3.5 flex-row items-center justify-between active:bg-card-selected"
                 accessibilityRole="button"
                 accessibilityLabel={`Reading time: ${time12Hour}. Tap to change.`}>
@@ -394,7 +394,7 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
                   <Text className="text-xs font-semibold text-umber dark:text-umber-dark">Change</Text>
                   <Ionicons name="chevron-forward" size={15} color={colors.textMuted} />
                 </View>
-              </Pressable>
+              </ScalePressable>
             </View>
 
             {/* Notes */}
@@ -482,6 +482,19 @@ export const AddEditSugarModal: React.FC<AddEditSugarModalProps> = ({
         value={time12Hour}
         onConfirm={(newTime) => setTime12Hour(newTime)}
         onClose={() => setIsTimePickerOpen(false)}
+      />
+
+      {/* Simple Confirmation Modal for Deleting Sugar Reading */}
+      <ConfirmationDialog
+        visible={showDeleteConfirm}
+        title="Delete reading?"
+        message={`Delete this ${initialLog?.level} mg/dL reading?`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        isSubmitting={isSubmitting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </Modal>
   );

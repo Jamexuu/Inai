@@ -42,11 +42,10 @@ export default function TabLayout() {
         const { medicineService } = await import('@/services/medicine.service');
         const { mealService } = await import('@/services/meal.service');
         const { bloodPressureService } = await import('@/services/blood-pressure.service');
-        await Promise.allSettled([
-          medicineService.syncAllMedicineReminders(),
-          mealService.syncAllMealReminders(),
-          bloodPressureService.syncAllBPReminders(),
-        ]);
+        // Sequentially sync reminders to eliminate startup SQLite lock contention
+        await medicineService.syncAllMedicineReminders();
+        await mealService.syncAllMealReminders();
+        await bloodPressureService.syncAllBPReminders();
         setDatabaseReady(true);
 
         // Check if permission prompt has been shown to new user

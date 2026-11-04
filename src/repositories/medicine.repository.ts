@@ -1,5 +1,5 @@
 import { getDatabase } from '@/database/database';
-import { Medicine, MedicineWithSchedules } from '@/types';
+import { Medicine, MedicineSchedule, MedicineWithSchedules } from '@/types';
 
 export interface IMedicineRepository {
   getAll(onlyActive?: boolean): Promise<Medicine[]>;
@@ -44,38 +44,37 @@ export class MedicineRepository implements IMedicineRepository {
     const medicines = await this.getAll(onlyActive);
     const db = getDatabase();
 
-    const result: MedicineWithSchedules[] = [];
-    for (const med of medicines) {
-      const scheduleRows = await db.getAllAsync<{
-        id: string;
-        medicine_id: string;
-        time_slot: string;
-        reminder_time: string;
-        days_of_week: string;
-        is_active: number;
-        created_at: string;
-        updated_at: string;
-      }>(
-        'SELECT * FROM medicine_schedules WHERE medicine_id = ? AND is_active = 1 ORDER BY reminder_time ASC;',
-        [med.id]
-      );
+    const scheduleRows = await db.getAllAsync<{
+      id: string;
+      medicine_id: string;
+      time_slot: string;
+      reminder_time: string;
+      days_of_week: string;
+      is_active: number;
+      created_at: string;
+      updated_at: string;
+    }>('SELECT * FROM medicine_schedules WHERE is_active = 1 ORDER BY reminder_time ASC;');
 
-      result.push({
-        ...med,
-        schedules: scheduleRows.map((s) => ({
-          id: s.id,
-          medicineId: s.medicine_id,
-          timeSlot: s.time_slot as any,
-          reminderTime: s.reminder_time,
-          daysOfWeek: s.days_of_week,
-          isActive: s.is_active === 1,
-          createdAt: s.created_at,
-          updatedAt: s.updated_at,
-        })),
+    const scheduleMap = new Map<string, MedicineSchedule[]>();
+    for (const s of scheduleRows) {
+      const list = scheduleMap.get(s.medicine_id) ?? [];
+      list.push({
+        id: s.id,
+        medicineId: s.medicine_id,
+        timeSlot: s.time_slot as any,
+        reminderTime: s.reminder_time,
+        daysOfWeek: s.days_of_week,
+        isActive: s.is_active === 1,
+        createdAt: s.created_at,
+        updatedAt: s.updated_at,
       });
+      scheduleMap.set(s.medicine_id, list);
     }
 
-    return result;
+    return medicines.map((med) => ({
+      ...med,
+      schedules: scheduleMap.get(med.id) ?? [],
+    }));
   }
 
   async getById(id: string): Promise<Medicine | null> {
@@ -161,4 +160,3 @@ export class MedicineRepository implements IMedicineRepository {
     await db.runAsync('DELETE FROM medicines WHERE id = ?;', [id]);
   }
 }
-

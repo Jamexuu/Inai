@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { AppThemeMode, settingsService } from '@/services/settings.service';
-import { syncAppTheme } from '@/hooks/use-color-scheme';
+import { syncAppTheme } from '@/utils/theme.utils';
 
 interface AppState {
   selectedDate: string; // YYYY-MM-DD

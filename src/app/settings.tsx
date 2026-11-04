@@ -11,7 +11,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/app.store';
 import { AppThemeMode } from '@/services/settings.service';
 import { notificationProvider } from '@/notifications';
-import { SectionHeader, PrimaryButton } from '@/components/ui';
+import { SectionHeader, PrimaryButton, ScalePressable } from '@/components/ui';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
@@ -93,13 +93,14 @@ export default function SettingsScreen() {
       <ScrollView contentContainerClassName="px-4 pb-12">
         {/* Header with Back Button */}
         <View className="pt-3 pb-3 flex-row items-center gap-3">
-          <Pressable
+          <ScalePressable
             onPress={() => router.back()}
+            scaleTo={0.92}
             className="min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
             accessibilityRole="button"
             accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={22} color={colors.primary} />
-          </Pressable>
+          </ScalePressable>
           <View className="flex-1">
             <Text className="text-[26px] font-bold text-charcoal dark:text-charcoal-dark">
               Settings
@@ -120,9 +121,10 @@ export default function SettingsScreen() {
           {themeOptions.map((opt) => {
             const isSelected = themeMode === opt.key;
             return (
-              <Pressable
+              <ScalePressable
                 key={opt.key}
                 onPress={() => setThemeMode(opt.key)}
+                scaleTo={0.96}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`${opt.title}: ${opt.description}`}
@@ -165,7 +167,7 @@ export default function SettingsScreen() {
                     <Ionicons name="checkmark-sharp" size={16} color={opt.key === 'dark' ? '#101F18' : '#FFFFFF'} />
                   ) : null}
                 </View>
-              </Pressable>
+              </ScalePressable>
             );
           })}
         </View>

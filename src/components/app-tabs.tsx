@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { ScalePressable } from '@/components/ui/scale-pressable';
 
 type BottomTabBarProps = Parameters<
   NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>
@@ -197,13 +198,15 @@ function SlidingTabBar({
           };
 
           return (
-            <Pressable
+            <ScalePressable
               key={route.key}
               accessibilityRole="tab"
               accessibilityState={{ selected: isFocused }}
               accessibilityLabel={config.accessibilityLabel}
               onPress={onPress}
               onLongPress={onLongPress}
+              scaleTo={0.92}
+              opacityTo={0.8}
               style={{
                 flex: 1,
                 height: 50,
@@ -239,7 +242,7 @@ function SlidingTabBar({
                 }}>
                 {config.label}
               </Text>
-            </Pressable>
+            </ScalePressable>
           );
         })}
       </View>

@@ -1,3 +1,4 @@
+import { getDatabase } from '@/database/database';
 import {
   IMedicineLogRepository,
   IMedicineRepository,
@@ -7,7 +8,14 @@ import {
   MedicineScheduleRepository,
 } from '@/repositories';
 import { INotificationProvider, notificationProvider } from '@/notifications';
-import { Medicine, MedicineDoseStatus, MedicineWithSchedules, TimeSlot, TodayMedicineDose } from '@/types';
+import {
+  Medicine,
+  MedicineDoseStatus,
+  MedicineSchedule,
+  MedicineWithSchedules,
+  TimeSlot,
+  TodayMedicineDose,
+} from '@/types';
 
 export class MedicineService {
   private customNotifier?: INotificationProvider;
@@ -46,37 +54,43 @@ export class MedicineService {
     }>;
   }): Promise<MedicineWithSchedules> {
     const medicineId = `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const db = getDatabase();
+    let medicine: Medicine;
+    const createdSchedules: MedicineSchedule[] = [];
 
-    const medicine = await this.medicineRepo.create({
-      id: medicineId,
-      name: params.name.trim(),
-      dosage: params.dosage.trim(),
-      instructions: params.instructions?.trim() || undefined,
-      notes: params.notes?.trim() || undefined,
-      isActive: true,
-    });
-
-    const createdSchedules = [];
-    for (const s of params.schedules) {
-      const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      const schedule = await this.scheduleRepo.create({
-        id: scheduleId,
-        medicineId,
-        timeSlot: s.timeSlot,
-        reminderTime: s.reminderTime,
-        daysOfWeek: s.daysOfWeek ?? 'ALL',
+    await db.withTransactionAsync(async () => {
+      medicine = await this.medicineRepo.create({
+        id: medicineId,
+        name: params.name.trim(),
+        dosage: params.dosage.trim(),
+        instructions: params.instructions?.trim() || undefined,
+        notes: params.notes?.trim() || undefined,
         isActive: true,
       });
-      createdSchedules.push(schedule);
 
-      // Schedule local notification
+      for (const s of params.schedules) {
+        const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const schedule = await this.scheduleRepo.create({
+          id: scheduleId,
+          medicineId,
+          timeSlot: s.timeSlot,
+          reminderTime: s.reminderTime,
+          daysOfWeek: s.daysOfWeek ?? 'ALL',
+          isActive: true,
+        });
+        createdSchedules.push(schedule);
+      }
+    });
+
+    // Schedule local notifications outside the DB transaction
+    for (const schedule of createdSchedules) {
       try {
         await this.notifier?.scheduleMedicineReminder({
           medicineId,
           scheduleId: schedule.id,
-          medicineName: medicine.name,
-          dosage: medicine.dosage,
-          instructions: medicine.instructions,
+          medicineName: medicine!.name,
+          dosage: medicine!.dosage,
+          instructions: medicine!.instructions,
           timeSlot: schedule.timeSlot,
           reminderTime: schedule.reminderTime,
         });
@@ -86,7 +100,7 @@ export class MedicineService {
     }
 
     return {
-      ...medicine,
+      ...medicine!,
       schedules: createdSchedules,
     };
   }
@@ -137,7 +151,30 @@ export class MedicineService {
       daysOfWeek?: string;
     }>
   ): Promise<Medicine> {
-    const updated = await this.medicineRepo.update(medicine);
+    const db = getDatabase();
+    let updated: Medicine;
+    const createdSchedules: MedicineSchedule[] = [];
+
+    await db.withTransactionAsync(async () => {
+      updated = await this.medicineRepo.update(medicine);
+
+      if (newSchedules && newSchedules.length > 0) {
+        await this.scheduleRepo.deleteByMedicineId(medicine.id);
+
+        for (const s of newSchedules) {
+          const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          const schedule = await this.scheduleRepo.create({
+            id: scheduleId,
+            medicineId: medicine.id,
+            timeSlot: s.timeSlot,
+            reminderTime: s.reminderTime,
+            daysOfWeek: s.daysOfWeek ?? 'ALL',
+            isActive: true,
+          });
+          createdSchedules.push(schedule);
+        }
+      }
+    });
 
     if (newSchedules && newSchedules.length > 0) {
       // Cancel previous notifications
@@ -146,21 +183,8 @@ export class MedicineService {
       } catch (err) {
         console.warn('Failed to cancel notifications for updated medicine:', err);
       }
-      // Replace schedules
-      await this.scheduleRepo.deleteByMedicineId(medicine.id);
-
-      for (const s of newSchedules) {
-        const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const schedule = await this.scheduleRepo.create({
-          id: scheduleId,
-          medicineId: medicine.id,
-          timeSlot: s.timeSlot,
-          reminderTime: s.reminderTime,
-          daysOfWeek: s.daysOfWeek ?? 'ALL',
-          isActive: true,
-        });
-
-        // Reschedule notification
+      // Reschedule notifications outside the DB transaction
+      for (const schedule of createdSchedules) {
         try {
           await this.notifier?.scheduleMedicineReminder({
             medicineId: medicine.id,
@@ -177,7 +201,7 @@ export class MedicineService {
       }
     }
 
-    return updated;
+    return updated!;
   }
 
   async deleteMedicine(medicineId: string): Promise<void> {
@@ -187,9 +211,12 @@ export class MedicineService {
     } catch (err) {
       console.warn('Failed to cancel notifications for deleted medicine:', err);
     }
-    // 2. Delete schedules & medicine from SQLite
-    await this.scheduleRepo.deleteByMedicineId(medicineId);
-    await this.medicineRepo.delete(medicineId);
+    // 2. Delete schedules & medicine from SQLite inside transaction
+    const db = getDatabase();
+    await db.withTransactionAsync(async () => {
+      await this.scheduleRepo.deleteByMedicineId(medicineId);
+      await this.medicineRepo.delete(medicineId);
+    });
   }
 
   async markDose(params: {
@@ -210,10 +237,10 @@ export class MedicineService {
     });
   }
 
-  async markMultipleDosesTaken(doses: TodayMedicineDose[]): Promise<void> {
-    const todayPrefix = new Date().toISOString().substring(0, 10);
+  async markMultipleDosesTaken(doses: TodayMedicineDose[], datePrefix?: string): Promise<void> {
+    const prefix = datePrefix ?? new Date().toISOString().substring(0, 10);
     for (const dose of doses) {
-      const scheduledTime = `${todayPrefix} ${dose.reminderTime}`;
+      const scheduledTime = `${prefix} ${dose.reminderTime}`;
       const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       await this.logRepo.logDose({
         id: logId,
@@ -223,6 +250,29 @@ export class MedicineService {
         status: 'taken',
       });
     }
+  }
+
+  async markMultipleDosesSkipped(doses: TodayMedicineDose[], datePrefix?: string): Promise<void> {
+    const prefix = datePrefix ?? new Date().toISOString().substring(0, 10);
+    for (const dose of doses) {
+      const scheduledTime = `${prefix} ${dose.reminderTime}`;
+      const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      await this.logRepo.logDose({
+        id: logId,
+        medicineId: dose.medicineId,
+        scheduleId: dose.scheduleId,
+        scheduledTime,
+        status: 'skipped',
+      });
+    }
+  }
+
+  async unmarkDose(logId: string): Promise<void> {
+    await this.logRepo.deleteLog(logId);
+  }
+
+  async getWeekRoutineStatus(startDateYMD: string, endDateYMD: string) {
+    return this.logRepo.getWeekDosesStatus(startDateYMD, endDateYMD);
   }
 
   async syncAllMedicineReminders(): Promise<void> {

@@ -204,3 +204,178 @@ export function formatYMDToFullFriendly(ymd: string): string {
   }
   return ymd;
 }
+
+export interface WeekDayItem {
+  date: Date;
+  ymd: string;
+  dayName: string; // 'Mon', 'Tue', ...
+  dayNumber: number; // 1, 2, ...
+  isToday: boolean;
+  isFuture: boolean;
+}
+
+/**
+ * Returns the 7 days of the week (Monday through Sunday) containing the referenceDate.
+ */
+export function getWeekDates(referenceDate: Date = new Date()): WeekDayItem[] {
+  const ref = new Date(referenceDate);
+  const dayOfWeek = ref.getDay(); // 0 is Sunday, 1 is Monday...
+  const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+  const monday = new Date(ref);
+  monday.setDate(ref.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const todayYMD = formatDateToYMD(new Date());
+
+  const days: WeekDayItem[] = [];
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const ymd = formatDateToYMD(d);
+    days.push({
+      date: d,
+      ymd,
+      dayName: dayNames[i],
+      dayNumber: d.getDate(),
+      isToday: ymd === todayYMD,
+      isFuture: ymd > todayYMD,
+    });
+  }
+
+  return days;
+}
+
+export function getPreviousWeekDate(referenceDate: Date): Date {
+  const d = new Date(referenceDate);
+  d.setDate(d.getDate() - 7);
+  return d;
+}
+
+export function getNextWeekDate(referenceDate: Date): Date {
+  const d = new Date(referenceDate);
+  d.setDate(d.getDate() + 7);
+  return d;
+}
+
+export function formatWeekRangeDisplay(referenceDate: Date): string {
+  const weekDays = getWeekDates(referenceDate);
+  const first = weekDays[0].date;
+  const last = weekDays[6].date;
+
+  const firstMonth = first.toLocaleDateString('en-US', { month: 'short' });
+  const lastMonth = last.toLocaleDateString('en-US', { month: 'short' });
+  const year = last.getFullYear();
+
+  if (firstMonth === lastMonth) {
+    return `${firstMonth} ${first.getDate()} – ${last.getDate()}, ${year}`;
+  }
+  return `${firstMonth} ${first.getDate()} – ${lastMonth} ${last.getDate()}, ${year}`;
+}
+
+export type DayCode = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+
+export const ALL_DAYS: DayCode[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+export const WEEKDAYS: DayCode[] = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+export const WEEKENDS: DayCode[] = ['SAT', 'SUN'];
+
+export const DAY_LABELS: Record<DayCode, { short: string; full: string; letter: string }> = {
+  MON: { short: 'Mon', full: 'Monday', letter: 'M' },
+  TUE: { short: 'Tue', full: 'Tuesday', letter: 'T' },
+  WED: { short: 'Wed', full: 'Wednesday', letter: 'W' },
+  THU: { short: 'Thu', full: 'Thursday', letter: 'T' },
+  FRI: { short: 'Fri', full: 'Friday', letter: 'F' },
+  SAT: { short: 'Sat', full: 'Saturday', letter: 'S' },
+  SUN: { short: 'Sun', full: 'Sunday', letter: 'S' },
+};
+
+const DAY_INDEX_MAP: DayCode[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+const LEGACY_NUM_TO_DAY: Record<string, DayCode> = {
+  '1': 'MON',
+  '2': 'TUE',
+  '3': 'WED',
+  '4': 'THU',
+  '5': 'FRI',
+  '6': 'SAT',
+  '7': 'SUN',
+  '0': 'SUN',
+};
+
+/**
+ * Returns the DayCode ('MON'..'SUN') for a given Date or 'YYYY-MM-DD' string.
+ */
+export function getDayCodeFromDate(dateOrYMD: Date | string): DayCode {
+  if (typeof dateOrYMD === 'string') {
+    const parts = dateOrYMD.split('-').map(Number);
+    if (parts.length === 3) {
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      return DAY_INDEX_MAP[d.getDay()];
+    }
+    const d = new Date(dateOrYMD);
+    return DAY_INDEX_MAP[d.getDay()];
+  }
+  return DAY_INDEX_MAP[dateOrYMD.getDay()];
+}
+
+/**
+ * Parses a days_of_week string into an array of DayCodes.
+ * If empty or 'ALL', returns all 7 days.
+ */
+export function parseDaysOfWeekString(daysOfWeek: string | undefined | null): DayCode[] {
+  if (!daysOfWeek || daysOfWeek === 'ALL') {
+    return [...ALL_DAYS];
+  }
+  const rawTokens = daysOfWeek.toUpperCase().split(',').map((t) => t.trim());
+  const resolved: DayCode[] = [];
+  for (const t of rawTokens) {
+    if ((ALL_DAYS as string[]).includes(t)) {
+      resolved.push(t as DayCode);
+    } else if (LEGACY_NUM_TO_DAY[t]) {
+      resolved.push(LEGACY_NUM_TO_DAY[t]);
+    }
+  }
+  return resolved.length > 0 ? resolved : [...ALL_DAYS];
+}
+
+/**
+ * Serializes an array of DayCodes into a storage string:
+ * - 'ALL' if all 7 days are selected.
+ * - Comma-separated sorted codes (e.g. 'MON,WED,FRI') otherwise.
+ */
+export function serializeDaysOfWeek(days: DayCode[]): string {
+  if (!days || days.length === 0 || days.length === 7) {
+    return 'ALL';
+  }
+  // Sort according to ALL_DAYS order (MON -> SUN)
+  const sorted = ALL_DAYS.filter((d) => days.includes(d));
+  return sorted.join(',');
+}
+
+/**
+ * Checks whether a given schedule daysOfWeek string includes the target DayCode.
+ */
+export function isScheduledOnDay(daysOfWeek: string | undefined | null, targetDay: DayCode): boolean {
+  if (!daysOfWeek || daysOfWeek === 'ALL') {
+    return true;
+  }
+  const days = parseDaysOfWeekString(daysOfWeek);
+  return days.includes(targetDay);
+}
+
+/**
+ * Returns a human-friendly summary of schedule days (e.g. "Every day", "Weekdays", "Mon, Wed, Fri").
+ */
+export function formatDaysOfWeekSummary(daysOfWeek: string | undefined | null): string {
+  if (!daysOfWeek || daysOfWeek === 'ALL') return 'Every day';
+  const tokens = parseDaysOfWeekString(daysOfWeek);
+  if (tokens.length === 7) return 'Every day';
+  if (tokens.length === 5 && WEEKDAYS.every((d) => tokens.includes(d))) return 'Weekdays';
+  if (tokens.length === 2 && WEEKENDS.every((d) => tokens.includes(d))) return 'Weekends';
+
+  const sorted = ALL_DAYS.filter((d) => tokens.includes(d));
+  return sorted.map((d) => DAY_LABELS[d]?.short || d).join(', ');
+}
+
+
