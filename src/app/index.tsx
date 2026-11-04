@@ -13,24 +13,16 @@ import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
 import { bloodSugarService } from '@/services/blood-sugar.service';
 import { TodayMedicineDose, BloodSugarLog } from '@/types';
-import { DayDoseCount } from '@/repositories/medicine-log.repository';
 import {
   SectionHeader,
   PrimaryButton,
   EmptyState,
   HomeSkeleton,
-  WeekDaySelector,
   MedicineGroupCard,
 } from '@/components/ui';
 import { AddMedicineModal } from '@/components/add-medicine-modal';
 import { AddEditSugarModal } from '@/components/add-edit-sugar-modal';
-import {
-  formatTo12Hour,
-  formatDateToYMD,
-  getWeekDates,
-  formatYMDToDisplay,
-  formatYMDToFullFriendly,
-} from '@/utils/date.utils';
+import { formatTo12Hour, formatDateToYMD } from '@/utils/date.utils';
 import { groupDosesBySlot } from '@/utils/medicine-group.utils';
 import {
   getSugarCategory,
@@ -46,10 +38,7 @@ export default function HomeScreen() {
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
 
-  // Active selected date for the week (defaults to today)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [doses, setDoses] = useState<TodayMedicineDose[]>([]);
-  const [weekStatuses, setWeekStatuses] = useState<Record<string, DayDoseCount>>({});
   const [daySugarLogs, setDaySugarLogs] = useState<BloodSugarLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,42 +48,33 @@ export default function HomeScreen() {
   const [isSugarModalOpen, setIsSugarModalOpen] = useState(false);
   const [selectedSugarLog, setSelectedSugarLog] = useState<BloodSugarLog | null>(null);
 
-  // Date calculations
-  const selectedDateYMD = useMemo(() => formatDateToYMD(selectedDate), [selectedDate]);
+  // Today's date in YYYY-MM-DD format
   const todayYMD = useMemo(() => formatDateToYMD(new Date()), []);
-  const isSelectedToday = selectedDateYMD === todayYMD;
-  const isSelectedPast = selectedDateYMD < todayYMD;
 
-  const weekDays = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
-  const startOfWeekYMD = weekDays[0].ymd;
-  const endOfWeekYMD = weekDays[6].ymd;
-
-  // Load selected day's routine, sugar logs, and week summary from SQLite
+  // Load today's routine & sugar logs from SQLite
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [dayDoses, allSugar, weekStats] = await Promise.all([
-        medicineService.getTodayDoses(selectedDateYMD),
+      const [dayDoses, allSugar] = await Promise.all([
+        medicineService.getTodayDoses(todayYMD),
         bloodSugarService.getAllLogs(),
-        medicineService.getWeekRoutineStatus(startOfWeekYMD, endOfWeekYMD),
       ]);
 
       const daySugar = allSugar.filter(
-        (l) => l.loggedAt.substring(0, 10) === selectedDateYMD
+        (l) => l.loggedAt.substring(0, 10) === todayYMD
       );
 
       setDoses(dayDoses);
       setDaySugarLogs(daySugar);
-      setWeekStatuses(weekStats);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
-      setError("We couldn't load the routine. Please try again.");
+      setError("We couldn't load today's routine. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isDatabaseReady, selectedDateYMD, startOfWeekYMD, endOfWeekYMD]);
+  }, [isDatabaseReady, todayYMD]);
 
   useEffect(() => {
     loadData();
@@ -105,7 +85,7 @@ export default function HomeScreen() {
     loadData();
   };
 
-  // Group doses by routine slot (Morning, After Lunch, Evening, Bedtime)
+  // Group doses by routine slot (Morning, Afternoon, Evening, Bedtime)
   const slotGroups = useMemo(() => groupDosesBySlot(doses), [doses]);
 
   // Overall progress calculations
@@ -118,13 +98,13 @@ export default function HomeScreen() {
 
   // Action: Take all medicines in a slot
   const handleTakeAllSlot = async (groupDoses: TodayMedicineDose[]) => {
-    await medicineService.markMultipleDosesTaken(groupDoses, selectedDateYMD);
+    await medicineService.markMultipleDosesTaken(groupDoses, todayYMD);
     triggerRefresh();
   };
 
   // Action: Skip all medicines in a slot
   const handleSkipAllSlot = async (groupDoses: TodayMedicineDose[]) => {
-    await medicineService.markMultipleDosesSkipped(groupDoses, selectedDateYMD);
+    await medicineService.markMultipleDosesSkipped(groupDoses, todayYMD);
     triggerRefresh();
   };
 
@@ -133,7 +113,7 @@ export default function HomeScreen() {
     if (dose.status === 'taken' && dose.logId) {
       await medicineService.unmarkDose(dose.logId);
     } else {
-      const scheduledTime = `${selectedDateYMD} ${dose.reminderTime}`;
+      const scheduledTime = `${todayYMD} ${dose.reminderTime}`;
       await medicineService.markDose({
         medicineId: dose.medicineId,
         scheduleId: dose.scheduleId,
@@ -159,15 +139,13 @@ export default function HomeScreen() {
   const greeting =
     currentHour < 12 ? 'Good morning, Mom' : currentHour < 18 ? 'Good afternoon, Mom' : 'Good evening, Mom';
 
-  const formattedHeaderDate = isSelectedToday
-    ? new Date().toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      })
-    : formatYMDToFullFriendly(selectedDateYMD);
+  const formattedHeaderDate = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 
-  // Selected day's sugar average
+  // Today's sugar average
   const daySugarAvg =
     daySugarLogs.length > 0
       ? Math.round(
@@ -191,10 +169,10 @@ export default function HomeScreen() {
           />
         }>
         {/* Header Greeting & Settings Button */}
-        <View className="pt-3 pb-2 flex-row justify-between items-start">
+        <View className="pt-3 pb-3 flex-row justify-between items-start">
           <View className="gap-1 flex-1 pr-2">
             <Text className="text-[28px] font-bold tracking-wide text-charcoal dark:text-charcoal-dark">
-              {isSelectedToday ? greeting : 'Medicine Routine'}
+              {greeting}
             </Text>
             <Text className="text-base font-semibold text-umber dark:text-umber-dark">
               {formattedHeaderDate}
@@ -208,38 +186,6 @@ export default function HomeScreen() {
             <Ionicons name="settings-outline" size={22} color={colors.primary} />
           </Pressable>
         </View>
-
-        {/* ------------------------------------------------------------- */}
-        {/* Week Day Selector: Allows Mom to log medicines across the week */}
-        {/* ------------------------------------------------------------- */}
-        <WeekDaySelector
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          dayStatuses={weekStatuses}
-        />
-
-        {/* Past Day Notice Banner */}
-        {!isSelectedToday ? (
-          <View className="flex-row items-center justify-between p-3 rounded-xl bg-sage-tint/40 dark:bg-sage-dark-tint/40 border border-sage/20 dark:border-sage-dark/20 my-1">
-            <View className="flex-row items-center gap-2 flex-1 pr-2">
-              <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
-              <Text className="text-xs font-semibold text-charcoal dark:text-charcoal-dark flex-1">
-                {isSelectedPast
-                  ? `Viewing previous day (${formatYMDToDisplay(selectedDateYMD)}). You can mark or update past medicines.`
-                  : `Viewing upcoming schedule for ${formatYMDToDisplay(selectedDateYMD)}.`}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => setSelectedDate(new Date())}
-              className="px-2.5 py-1 rounded-lg bg-card dark:bg-card-dark border border-subtle-border dark:border-subtle-border-dark active:opacity-75"
-              accessibilityRole="button"
-              accessibilityLabel="Return to today">
-              <Text className="text-xs font-bold text-sage dark:text-sage-dark">
-                Back to Today
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
 
         {loading ? (
           <HomeSkeleton />
@@ -263,12 +209,12 @@ export default function HomeScreen() {
             {/* Hero Card: Next Routine Slot or Completed Status             */}
             {/* ----------------------------------------------------------- */}
             {nextPendingGroup ? (
-              <View className="rounded-2xl border-2 border-sage dark:border-sage-dark bg-sage-tint dark:bg-sage-dark-tint p-4 mt-2 mb-2.5 gap-2.5 overflow-hidden">
+              <View className="rounded-2xl border-2 border-sage dark:border-sage-dark bg-sage-tint dark:bg-sage-dark-tint p-4 mt-1 mb-2.5 gap-2.5 overflow-hidden">
                 <View className="flex-row justify-between items-start gap-2">
                   <View className="flex-row items-center gap-1.5 flex-1 min-w-0 flex-wrap">
                     <Ionicons name="notifications" size={14} color={colors.primary} />
                     <Text className="text-[13px] font-bold tracking-wider text-sage dark:text-sage-dark uppercase">
-                      {isSelectedToday ? 'NEXT ROUTINE' : `${nextPendingGroup.slotTitle.toUpperCase()}`}
+                      NEXT ROUTINE
                     </Text>
                     <View className="bg-sage/15 dark:bg-sage/25 px-2.5 py-0.5 rounded-xl">
                       <Text className="text-xs font-bold text-sage dark:text-sage-dark">
@@ -320,16 +266,14 @@ export default function HomeScreen() {
                 </View>
               </View>
             ) : totalMeds > 0 ? (
-              <View className="flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-herbal dark:border-herbal-dark bg-herbal-tint dark:bg-herbal-dark-tint p-4 mt-2 mb-2.5">
+              <View className="flex-row items-center gap-3.5 rounded-2xl border-[1.5px] border-herbal dark:border-herbal-dark bg-herbal-tint dark:bg-herbal-dark-tint p-4 mt-1 mb-2.5">
                 <Ionicons name="checkmark-done-circle" size={36} color={colors.success} />
                 <View className="flex-1 gap-0.5">
                   <Text className="text-lg font-bold text-herbal dark:text-herbal-dark">
                     All medicines completed!
                   </Text>
                   <Text className="text-sm font-medium leading-5 text-umber dark:text-umber-dark">
-                    {isSelectedToday
-                      ? 'Wonderful job today, Mom. Rest easy and stay hydrated.'
-                      : `All ${totalMeds} medicines recorded for ${formatYMDToDisplay(selectedDateYMD)}.`}
+                    Wonderful job today, Mom. Rest easy and stay hydrated.
                   </Text>
                 </View>
               </View>
@@ -339,7 +283,7 @@ export default function HomeScreen() {
             {/* Grouped Medicine Cards Section (Single Card per Routine)     */}
             {/* ----------------------------------------------------------- */}
             <SectionHeader
-              title={isSelectedToday ? "Today's Medicines" : `${formatYMDToDisplay(selectedDateYMD)}'s Medicines`}
+              title="Today's Medicines"
               subtitle={totalMeds > 0 ? `${completedMeds} of ${totalMeds} taken` : undefined}
               rightElement={
                 <PrimaryButton
@@ -355,8 +299,8 @@ export default function HomeScreen() {
             {slotGroups.length === 0 ? (
               <EmptyState
                 iconName="pill"
-                title="No medicines scheduled yet"
-                description="Add your first maintenance medicine so Inai can gently remind you every day."
+                title="No medicines scheduled for today"
+                description="Add your daily maintenance medicines so Inai can gently remind you at the right time."
                 actionLabel="Add Medicine"
                 onAction={() => setIsAddModalOpen(true)}
               />
@@ -365,8 +309,8 @@ export default function HomeScreen() {
                 <MedicineGroupCard
                   key={group.id}
                   group={group}
-                  selectedDateYMD={selectedDateYMD}
-                  isToday={isSelectedToday}
+                  selectedDateYMD={todayYMD}
+                  isToday={true}
                   onTakeAll={handleTakeAllSlot}
                   onSkipAll={handleSkipAllSlot}
                   onToggleDose={handleToggleDose}
@@ -375,10 +319,10 @@ export default function HomeScreen() {
             )}
 
             {/* ----------------------------------------------------------- */}
-            {/* Blood Sugar Section for the Selected Day                     */}
+            {/* Blood Sugar Section for Today                                */}
             {/* ----------------------------------------------------------- */}
             <SectionHeader
-              title={isSelectedToday ? "Today's Blood Sugar" : `${formatYMDToDisplay(selectedDateYMD)}'s Sugar`}
+              title="Today's Blood Sugar"
               subtitle={
                 daySugarAvg !== null
                   ? `Average: ${daySugarAvg} mg/dL (${daySugarLogs.length} logged)`
@@ -402,7 +346,7 @@ export default function HomeScreen() {
                 </View>
                 <View className="gap-0.5 items-center">
                   <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark text-center">
-                    No sugar checks logged {isSelectedToday ? 'today' : 'for this day'}
+                    No sugar checks logged today
                   </Text>
                   <Text className="text-xs font-medium text-umber dark:text-umber-dark text-center">
                     Check fasting or post-meal glucose to stay on top of your routine.
