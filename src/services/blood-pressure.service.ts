@@ -7,7 +7,7 @@ import { INotificationProvider, notificationProvider } from '@/notifications';
 import { getDatabase } from '@/database/database';
 
 export interface BPReminderConfig {
-  id: 'morning' | 'evening';
+  id: string;
   label: string;
   reminderTime: string; // 24-hr format like "08:00" or "19:00"
   enabled: boolean;
@@ -195,7 +195,7 @@ export class BloodPressureService {
         title: string;
         status: string;
       }>(
-        "SELECT entity_id, trigger_time, title, status FROM reminders WHERE entity_type = 'bp_reminder';"
+        "SELECT entity_id, trigger_time, title, status FROM reminders WHERE entity_type = 'bp_reminder' ORDER BY trigger_time ASC;"
       );
 
       if (rows.length === 0) {
@@ -205,18 +205,12 @@ export class BloodPressureService {
         return DEFAULT_BP_REMINDERS;
       }
 
-      return DEFAULT_BP_REMINDERS.map((def) => {
-        const existing = rows.find((r) => r.entity_id === def.id);
-        if (existing) {
-          return {
-            id: def.id,
-            label: existing.title || def.label,
-            reminderTime: existing.trigger_time || def.reminderTime,
-            enabled: existing.status === 'active',
-          };
-        }
-        return def;
-      });
+      return rows.map((r) => ({
+        id: r.entity_id,
+        label: r.title,
+        reminderTime: r.trigger_time,
+        enabled: r.status === 'active',
+      }));
     } catch (e) {
       console.warn('Error fetching BP reminders from db:', e);
       return DEFAULT_BP_REMINDERS;
@@ -224,14 +218,14 @@ export class BloodPressureService {
   }
 
   async saveBPReminder(
-    id: 'morning' | 'evening',
+    id: string,
     reminderTime: string,
     enabled: boolean,
     label?: string
   ): Promise<void> {
     const db = getDatabase();
     const now = new Date().toISOString();
-    const title = label || (id === 'morning' ? 'Morning Blood Pressure Check' : 'Evening Blood Pressure Check');
+    const title = label || (id === 'morning' ? 'Morning Blood Pressure Check' : id === 'evening' ? 'Evening Blood Pressure Check' : 'Blood Pressure Check');
     const status = enabled ? 'active' : 'disabled';
     const reminderId = `bp_reminder_${id}`;
 
@@ -271,6 +265,30 @@ export class BloodPressureService {
       } catch (err) {
         console.warn(`Failed to cancel BP reminder for ${id}:`, err);
       }
+    }
+  }
+
+  async addBPReminder(label: string, reminderTime: string): Promise<BPReminderConfig> {
+    const id = `bp_custom_${Date.now()}`;
+    await this.saveBPReminder(id, reminderTime, true, label);
+    return {
+      id,
+      label,
+      reminderTime,
+      enabled: true,
+    };
+  }
+
+  async deleteBPReminder(id: string): Promise<void> {
+    const db = getDatabase();
+    await db.runAsync(
+      "DELETE FROM reminders WHERE entity_type = 'bp_reminder' AND entity_id = ?;",
+      [id]
+    );
+    try {
+      await this.notifier.cancelBPReminder(id);
+    } catch (e) {
+      console.warn(`Failed to cancel BP reminder for ${id} on delete:`, e);
     }
   }
 

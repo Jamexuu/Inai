@@ -25,6 +25,7 @@ import {
 } from '@/components/ui';
 import { AddEditBPModal } from '@/components/add-edit-bp-modal';
 import { ExportReportModal } from '@/components/export-report-modal';
+import { AddHealthReminderModal } from '@/components/add-health-reminder-modal';
 import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
 import { getBPCategory, getBPCategoryStyle } from '@/utils/bp.utils';
 import { useTheme } from '@/hooks/use-theme';
@@ -50,8 +51,10 @@ export default function BloodPressureScreen() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<BloodPressureLog | null>(null);
-  const [timePickerSlot, setTimePickerSlot] = useState<'morning' | 'evening' | null>(null);
+  const [timePickerSlot, setTimePickerSlot] = useState<string | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isAddReminderModalOpen, setIsAddReminderModalOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<BPReminderConfig | null>(null);
 
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
@@ -82,7 +85,7 @@ export default function BloodPressureScreen() {
     loadData();
   };
 
-  const handleToggleReminder = async (id: 'morning' | 'evening', enabled: boolean) => {
+  const handleToggleReminder = async (id: string, enabled: boolean) => {
     const existing = reminders.find((r) => r.id === id);
     if (!existing) return;
     await bloodPressureService.saveBPReminder(id, existing.reminderTime, enabled, existing.label);
@@ -104,6 +107,31 @@ export default function BloodPressureScreen() {
     const updated = await bloodPressureService.getBPReminders();
     setReminders(updated);
     setTimePickerSlot(null);
+  };
+
+  const handleSaveReminder = async (label: string, reminderTime: string, id?: string) => {
+    try {
+      if (id) {
+        const existing = reminders.find((r) => r.id === id);
+        await bloodPressureService.saveBPReminder(id, reminderTime, existing ? existing.enabled : true, label);
+      } else {
+        await bloodPressureService.addBPReminder(label, reminderTime);
+      }
+      const updated = await bloodPressureService.getBPReminders();
+      setReminders(updated);
+    } catch (e) {
+      console.warn('Failed to save BP reminder:', e);
+    }
+  };
+
+  const handleDeleteReminder = async (id: string) => {
+    try {
+      await bloodPressureService.deleteBPReminder(id);
+      const updated = await bloodPressureService.getBPReminders();
+      setReminders(updated);
+    } catch (e) {
+      console.warn('Failed to delete BP reminder:', e);
+    }
   };
 
   const handleOpenAdd = () => {
@@ -209,68 +237,6 @@ export default function BloodPressureScreen() {
               title="Blood Pressure Trends"
             />
 
-            {/* Daily BP Reminders Card */}
-            <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                  <View className="w-10 h-10 rounded-xl bg-terracotta-tint dark:bg-terracotta-dark-tint border border-terracotta/20 dark:border-terracotta-dark/20 items-center justify-center">
-                    <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
-                      BP Check Reminders
-                    </Text>
-                    <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
-                      Gentle reminders notify Mom to rest and record
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View className="gap-2 pt-1">
-                {reminders.map((rem) => {
-                  const isMorning = rem.id === 'morning';
-                  const formattedTime = formatTo12Hour(rem.reminderTime);
-                  return (
-                    <View
-                      key={rem.id}
-                      className="flex-row items-center justify-between p-3.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark">
-                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                        <Ionicons
-                          name={isMorning ? 'sunny-outline' : 'moon-outline'}
-                          size={22}
-                          color={isMorning ? colors.warning : colors.primary}
-                        />
-                        <View>
-                          <Text className="text-[15px] font-bold text-charcoal dark:text-charcoal-dark">
-                            {isMorning ? 'Morning Check' : 'Evening Check'}
-                          </Text>
-                          <ScalePressable
-                            onPress={() => setTimePickerSlot(rem.id)}
-                            scaleTo={0.92}
-                            className="min-h-[44px] flex-row items-center gap-1.5 py-1 px-1 rounded-lg"
-                            accessibilityRole="button"
-                            accessibilityLabel={`Change ${rem.label} time, currently ${formattedTime}`}>
-                            <Ionicons name="time-outline" size={16} color={colors.primary} />
-                            <Text className="text-sm font-bold text-sage dark:text-sage-dark underline">
-                              {formattedTime}
-                            </Text>
-                          </ScalePressable>
-                        </View>
-                      </View>
-                      <Switch
-                        value={rem.enabled}
-                        onValueChange={(val) => handleToggleReminder(rem.id, val)}
-                        trackColor={{ false: '#DDD7CD', true: colors.primary }}
-                        thumbColor={rem.enabled ? '#FFFFFF' : '#FAF7F2'}
-                        accessibilityLabel={`Toggle ${rem.label}`}
-                      />
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-
             {/* Latest Reading Card */}
             {latestLog && latestStyle ? (
               <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
@@ -329,6 +295,99 @@ export default function BloodPressureScreen() {
                 </View>
               </View>
             ) : null}
+
+            {/* Daily BP Reminders Card */}
+            <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                  <View className="w-10 h-10 rounded-xl bg-terracotta-tint dark:bg-terracotta-dark-tint border border-terracotta/20 dark:border-terracotta-dark/20 items-center justify-center">
+                    <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
+                      BP Check Reminders
+                    </Text>
+                    <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
+                      Gentle reminders notify you to rest and record
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Add Reminder Button */}
+                <ScalePressable
+                  onPress={() => {
+                    setEditingReminder(null);
+                    setIsAddReminderModalOpen(true);
+                  }}
+                  scaleTo={0.92}
+                  className="min-h-[40px] px-3 flex-row items-center gap-1 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
+                  accessibilityRole="button"
+                  accessibilityLabel="Add new blood pressure reminder">
+                  <Ionicons name="add" size={18} color={colors.primary} />
+                  <Text className="text-xs font-bold text-sage dark:text-sage-dark">Add</Text>
+                </ScalePressable>
+              </View>
+
+              <View className="gap-2 pt-1">
+                {reminders.map((rem) => {
+                  const isMorning = rem.label.toLowerCase().includes('morning') || rem.id === 'morning';
+                  const isEvening =
+                    rem.label.toLowerCase().includes('evening') ||
+                    rem.label.toLowerCase().includes('bedtime') ||
+                    rem.id === 'evening';
+                  const formattedTime = formatTo12Hour(rem.reminderTime);
+                  return (
+                    <View
+                      key={rem.id}
+                      className="flex-row items-center justify-between p-3.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                        <Ionicons
+                          name={isMorning ? 'sunny-outline' : isEvening ? 'moon-outline' : 'time-outline'}
+                          size={22}
+                          color={isMorning ? colors.warning : isEvening ? colors.primary : colors.secondary}
+                        />
+                        <View className="flex-1">
+                          <Text className="text-[15px] font-bold text-charcoal dark:text-charcoal-dark">
+                            {rem.label}
+                          </Text>
+                          <ScalePressable
+                            onPress={() => setTimePickerSlot(rem.id)}
+                            scaleTo={0.92}
+                            className="min-h-[36px] flex-row items-center gap-1.5 py-0.5 rounded-lg self-start"
+                            accessibilityRole="button"
+                            accessibilityLabel={`Change ${rem.label} time, currently ${formattedTime}`}>
+                            <Ionicons name="time-outline" size={15} color={colors.primary} />
+                            <Text className="text-sm font-bold text-sage dark:text-sage-dark underline">
+                              {formattedTime}
+                            </Text>
+                          </ScalePressable>
+                        </View>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <ScalePressable
+                          onPress={() => {
+                            setEditingReminder(rem);
+                            setIsAddReminderModalOpen(true);
+                          }}
+                          scaleTo={0.9}
+                          className="w-9 h-9 items-center justify-center rounded-lg bg-card dark:bg-card-dark border border-subtle-border dark:border-subtle-border-dark"
+                          accessibilityRole="button"
+                          accessibilityLabel={`Modify ${rem.label}`}>
+                          <Ionicons name="pencil" size={15} color={colors.primary} />
+                        </ScalePressable>
+                        <Switch
+                          value={rem.enabled}
+                          onValueChange={(val) => handleToggleReminder(rem.id, val)}
+                          trackColor={{ false: '#DDD7CD', true: colors.primary }}
+                          thumbColor={rem.enabled ? '#FFFFFF' : '#FAF7F2'}
+                          accessibilityLabel={`Toggle ${rem.label}`}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
 
             {/* Section Header */}
             <SectionHeader
@@ -460,6 +519,19 @@ export default function BloodPressureScreen() {
         visible={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         initialType="bp"
+      />
+
+      {/* Add / Modify Reminder Modal */}
+      <AddHealthReminderModal
+        visible={isAddReminderModalOpen}
+        type="bp"
+        initialReminder={editingReminder}
+        onClose={() => {
+          setIsAddReminderModalOpen(false);
+          setEditingReminder(null);
+        }}
+        onSave={handleSaveReminder}
+        onDelete={handleDeleteReminder}
       />
     </SafeAreaView>
   );

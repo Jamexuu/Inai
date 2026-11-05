@@ -5,12 +5,13 @@ import {
   View,
   Pressable,
   RefreshControl,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/store/app.store';
-import { bloodSugarService } from '@/services/blood-sugar.service';
+import { bloodSugarService, SugarReminderConfig } from '@/services/blood-sugar.service';
 import { BloodSugarLog } from '@/types';
 import {
   SectionHeader,
@@ -20,10 +21,12 @@ import {
   HealthBarGraph,
   PaginationControls,
   ScalePressable,
+  ScrollableTimePickerModal,
 } from '@/components/ui';
 import { AddEditSugarModal } from '@/components/add-edit-sugar-modal';
 import { ExportReportModal } from '@/components/export-report-modal';
-import { formatTo12Hour } from '@/utils/date.utils';
+import { AddHealthReminderModal } from '@/components/add-health-reminder-modal';
+import { formatTo12Hour, parseTo24Hour } from '@/utils/date.utils';
 import {
   getSugarCategory,
   getSugarCategoryStyle,
@@ -41,9 +44,15 @@ export default function SugarScreen() {
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
 
   const [logs, setLogs] = useState<BloodSugarLog[]>([]);
+  const [reminders, setReminders] = useState<SugarReminderConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Time picker & reminder modals
+  const [timePickerSlot, setTimePickerSlot] = useState<string | null>(null);
+  const [isAddReminderModalOpen, setIsAddReminderModalOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<SugarReminderConfig | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,8 +66,12 @@ export default function SugarScreen() {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const data = await bloodSugarService.getAllLogs();
+      const [data, sugarReminders] = await Promise.all([
+        bloodSugarService.getAllLogs(),
+        bloodSugarService.getSugarReminders(),
+      ]);
       setLogs(data);
+      setReminders(sugarReminders);
     } catch (err) {
       console.error('Error loading blood sugar logs:', err);
       setError("We couldn't load blood sugar records. Please try again.");
@@ -76,6 +89,55 @@ export default function SugarScreen() {
     setRefreshing(true);
     setCurrentPage(1);
     loadData();
+  };
+
+  const handleToggleReminder = async (id: string, enabled: boolean) => {
+    const existing = reminders.find((r) => r.id === id);
+    if (!existing) return;
+    await bloodSugarService.saveSugarReminder(id, existing.reminderTime, enabled, existing.label);
+    const updated = await bloodSugarService.getSugarReminders();
+    setReminders(updated);
+  };
+
+  const handleUpdateTime = async (new12HourTime: string) => {
+    if (!timePickerSlot) return;
+    const canonicalTime = parseTo24Hour(new12HourTime);
+    const existing = reminders.find((r) => r.id === timePickerSlot);
+    if (!existing) return;
+    await bloodSugarService.saveSugarReminder(
+      timePickerSlot,
+      canonicalTime,
+      existing.enabled,
+      existing.label
+    );
+    const updated = await bloodSugarService.getSugarReminders();
+    setReminders(updated);
+    setTimePickerSlot(null);
+  };
+
+  const handleSaveReminder = async (label: string, reminderTime: string, id?: string) => {
+    try {
+      if (id) {
+        const existing = reminders.find((r) => r.id === id);
+        await bloodSugarService.saveSugarReminder(id, reminderTime, existing ? existing.enabled : true, label);
+      } else {
+        await bloodSugarService.addSugarReminder(label, reminderTime);
+      }
+      const updated = await bloodSugarService.getSugarReminders();
+      setReminders(updated);
+    } catch (e) {
+      console.warn('Failed to save Sugar reminder:', e);
+    }
+  };
+
+  const handleDeleteReminder = async (id: string) => {
+    try {
+      await bloodSugarService.deleteSugarReminder(id);
+      const updated = await bloodSugarService.getSugarReminders();
+      setReminders(updated);
+    } catch (e) {
+      console.warn('Failed to delete Sugar reminder:', e);
+    }
   };
 
   const handleOpenAdd = () => {
@@ -156,7 +218,21 @@ export default function SugarScreen() {
           <SugarSkeleton />
         ) : (
           <>
-            {/* Quick Overview Hero Card */}
+            {/* Error Message */}
+            {error ? (
+              <View className="p-3 my-2 bg-brick-tint border border-brick rounded-xl">
+                <Text className="text-sm font-bold text-brick">{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Blood Sugar Bar Graph with Today / Week / Month / Year Timeframe Tabs */}
+            <HealthBarGraph
+              type="sugar"
+              sugarLogs={logs}
+              title="Blood Sugar Trends"
+            />
+
+            {/* Quick Overview Hero Card: Latest Glucose Reading */}
             {latestLog && latestStyle ? (
               <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
                 <View className="flex-row items-center justify-between">
@@ -207,19 +283,114 @@ export default function SugarScreen() {
               </View>
             ) : null}
 
-            {/* Error Message */}
-            {error ? (
-              <View className="p-3 my-2 bg-brick-tint border border-brick rounded-xl">
-                <Text className="text-sm font-bold text-brick">{error}</Text>
-              </View>
-            ) : null}
+            {/* Daily Sugar Reminders Card */}
+            <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                  <View className="w-10 h-10 rounded-xl bg-terracotta-tint dark:bg-terracotta-dark-tint border border-terracotta/20 dark:border-terracotta-dark/20 items-center justify-center">
+                    <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
+                      Blood Sugar Reminders
+                    </Text>
+                    <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
+                      Gentle reminders for fasting and post-meal checks
+                    </Text>
+                  </View>
+                </View>
 
-            {/* Blood Sugar Bar Graph with Today / Week / Month / Year Timeframe Tabs */}
-            <HealthBarGraph
-              type="sugar"
-              sugarLogs={logs}
-              title="Blood Sugar Trends"
-            />
+                {/* Add Reminder Button */}
+                <ScalePressable
+                  onPress={() => {
+                    setEditingReminder(null);
+                    setIsAddReminderModalOpen(true);
+                  }}
+                  scaleTo={0.92}
+                  className="min-h-[40px] px-3 flex-row items-center gap-1 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
+                  accessibilityRole="button"
+                  accessibilityLabel="Add new blood sugar reminder">
+                  <Ionicons name="add" size={18} color={colors.primary} />
+                  <Text className="text-xs font-bold text-sage dark:text-sage-dark">Add</Text>
+                </ScalePressable>
+              </View>
+
+              <View className="gap-2 pt-1">
+                {reminders.map((rem) => {
+                  const isMorning =
+                    rem.label.toLowerCase().includes('morning') ||
+                    rem.label.toLowerCase().includes('fasting') ||
+                    rem.id === 'fasting';
+                  const isEvening =
+                    rem.label.toLowerCase().includes('evening') ||
+                    rem.label.toLowerCase().includes('dinner') ||
+                    rem.label.toLowerCase().includes('bedtime') ||
+                    rem.id === 'post_dinner';
+                  const isLunch =
+                    rem.label.toLowerCase().includes('lunch') ||
+                    rem.label.toLowerCase().includes('afternoon');
+                  const iconName = isMorning
+                    ? 'sunny-outline'
+                    : isEvening
+                    ? 'moon-outline'
+                    : isLunch
+                    ? 'restaurant-outline'
+                    : 'water-outline';
+                  const iconColor = isMorning
+                    ? colors.warning
+                    : isEvening
+                    ? colors.primary
+                    : colors.secondary;
+                  const formattedTime = formatTo12Hour(rem.reminderTime);
+
+                  return (
+                    <View
+                      key={rem.id}
+                      className="flex-row items-center justify-between p-3.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                        <Ionicons name={iconName} size={22} color={iconColor} />
+                        <View className="flex-1">
+                          <Text className="text-[15px] font-bold text-charcoal dark:text-charcoal-dark">
+                            {rem.label}
+                          </Text>
+                          <ScalePressable
+                            onPress={() => setTimePickerSlot(rem.id)}
+                            scaleTo={0.92}
+                            className="min-h-[36px] flex-row items-center gap-1.5 py-0.5 rounded-lg self-start"
+                            accessibilityRole="button"
+                            accessibilityLabel={`Change ${rem.label} time, currently ${formattedTime}`}>
+                            <Ionicons name="time-outline" size={15} color={colors.primary} />
+                            <Text className="text-sm font-bold text-sage dark:text-sage-dark underline">
+                              {formattedTime}
+                            </Text>
+                          </ScalePressable>
+                        </View>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <ScalePressable
+                          onPress={() => {
+                            setEditingReminder(rem);
+                            setIsAddReminderModalOpen(true);
+                          }}
+                          scaleTo={0.9}
+                          className="w-9 h-9 items-center justify-center rounded-lg bg-card dark:bg-card-dark border border-subtle-border dark:border-subtle-border-dark"
+                          accessibilityRole="button"
+                          accessibilityLabel={`Modify ${rem.label}`}>
+                          <Ionicons name="pencil" size={15} color={colors.primary} />
+                        </ScalePressable>
+                        <Switch
+                          value={rem.enabled}
+                          onValueChange={(val) => handleToggleReminder(rem.id, val)}
+                          trackColor={{ false: '#DDD7CD', true: colors.primary }}
+                          thumbColor={rem.enabled ? '#FFFFFF' : '#FAF7F2'}
+                          accessibilityLabel={`Toggle ${rem.label}`}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
 
             {/* Reading History Log Section */}
             <SectionHeader
@@ -331,11 +502,38 @@ export default function SugarScreen() {
         onSuccess={() => triggerRefresh()}
       />
 
+      {/* Scrollable Time Picker for Sugar Reminder */}
+      <ScrollableTimePickerModal
+        visible={timePickerSlot !== null}
+        value={
+          timePickerSlot
+            ? formatTo12Hour(
+                reminders.find((r) => r.id === timePickerSlot)?.reminderTime || '07:30'
+              )
+            : '7:30 AM'
+        }
+        onClose={() => setTimePickerSlot(null)}
+        onConfirm={handleUpdateTime}
+      />
+
       {/* Export Report Modal */}
       <ExportReportModal
         visible={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         initialType="sugar"
+      />
+
+      {/* Add / Modify Reminder Modal */}
+      <AddHealthReminderModal
+        visible={isAddReminderModalOpen}
+        type="sugar"
+        initialReminder={editingReminder}
+        onClose={() => {
+          setIsAddReminderModalOpen(false);
+          setEditingReminder(null);
+        }}
+        onSave={handleSaveReminder}
+        onDelete={handleDeleteReminder}
       />
     </SafeAreaView>
   );
