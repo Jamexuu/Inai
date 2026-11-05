@@ -7,7 +7,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
@@ -70,14 +70,8 @@ export default function HomeScreen() {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [dayDoses, allSugar] = await Promise.all([
-        medicineService.getTodayDoses(todayYMD),
-        bloodSugarService.getAllLogs(),
-      ]);
-
-      const daySugar = allSugar.filter(
-        (l) => l.loggedAt.substring(0, 10) === todayYMD
-      );
+      const dayDoses = await medicineService.getTodayDoses(todayYMD);
+      const daySugar = await bloodSugarService.getTodayLogs(todayYMD);
 
       setDoses(dayDoses);
       setDaySugarLogs(daySugar);
@@ -90,9 +84,13 @@ export default function HomeScreen() {
     }
   }, [isDatabaseReady, todayYMD]);
 
+  const isFocused = useIsFocused();
+
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger, isDatabaseReady]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isDatabaseReady, isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);

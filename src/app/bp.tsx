@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { useAppStore } from '@/store/app.store';
 import { bloodPressureService, BPReminderConfig } from '@/services/blood-pressure.service';
 import { BloodPressureLog } from '@/types';
@@ -56,14 +56,14 @@ export default function BloodPressureScreen() {
   const [isAddReminderModalOpen, setIsAddReminderModalOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<BPReminderConfig | null>(null);
 
+  const isFocused = useIsFocused();
+
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [data, bpReminders] = await Promise.all([
-        bloodPressureService.getAllLogs(),
-        bloodPressureService.getBPReminders(),
-      ]);
+      const data = await bloodPressureService.getAllLogs();
+      const bpReminders = await bloodPressureService.getBPReminders();
       setLogs(data);
       setReminders(bpReminders);
     } catch (err) {
@@ -76,8 +76,10 @@ export default function BloodPressureScreen() {
   }, [isDatabaseReady]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger, isDatabaseReady]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isDatabaseReady, isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);

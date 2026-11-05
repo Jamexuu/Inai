@@ -43,6 +43,15 @@ export class BloodSugarService {
     return this.sugarRepo.getAll();
   }
 
+  async getTodayLogs(datePrefix?: string): Promise<BloodSugarLog[]> {
+    const prefix = datePrefix || new Date().toISOString().substring(0, 10);
+    if (this.sugarRepo.getByDate) {
+      return this.sugarRepo.getByDate(prefix);
+    }
+    const all = await this.sugarRepo.getAll();
+    return all.filter((l) => l.loggedAt.startsWith(prefix));
+  }
+
   async getLatestLog(): Promise<BloodSugarLog | null> {
     const logs = await this.sugarRepo.getAll();
     return logs[0] || null;

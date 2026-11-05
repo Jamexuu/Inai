@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
 import { MedicineWithSchedules, MedicineLog } from '@/types';
@@ -41,14 +41,14 @@ export default function MedicinesScreen() {
   const [medicineToDelete, setMedicineToDelete] = useState<MedicineWithSchedules | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const isFocused = useIsFocused();
+
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [allMeds, recentLogs] = await Promise.all([
-        medicineService.getAllMedicines(),
-        medicineService.getRecentLogs(20),
-      ]);
+      const allMeds = await medicineService.getAllMedicines();
+      const recentLogs = await medicineService.getRecentLogs(20);
       setMedicines(allMeds);
       setLogs(recentLogs);
     } catch (err) {
@@ -61,8 +61,10 @@ export default function MedicinesScreen() {
   }, [isDatabaseReady]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger, isDatabaseReady]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isDatabaseReady, isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);

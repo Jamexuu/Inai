@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { useAppStore } from '@/store/app.store';
 import { bloodSugarService, SugarReminderConfig } from '@/services/blood-sugar.service';
 import { BloodSugarLog } from '@/types';
@@ -62,14 +62,14 @@ export default function SugarScreen() {
   const [selectedLog, setSelectedLog] = useState<BloodSugarLog | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
+  const isFocused = useIsFocused();
+
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [data, sugarReminders] = await Promise.all([
-        bloodSugarService.getAllLogs(),
-        bloodSugarService.getSugarReminders(),
-      ]);
+      const data = await bloodSugarService.getAllLogs();
+      const sugarReminders = await bloodSugarService.getSugarReminders();
       setLogs(data);
       setReminders(sugarReminders);
     } catch (err) {
@@ -82,8 +82,10 @@ export default function SugarScreen() {
   }, [isDatabaseReady]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger, isDatabaseReady]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isDatabaseReady, isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);

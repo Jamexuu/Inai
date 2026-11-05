@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
 import { bloodSugarService } from '@/services/blood-sugar.service';
@@ -79,16 +79,28 @@ export default function HistoryScreen() {
   const [isAddBPModalOpen, setIsAddBPModalOpen] = useState(false);
   const [selectedBPLog, setSelectedBPLog] = useState<BloodPressureLog | null>(null);
 
+  const isFocused = useIsFocused();
+
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [allMeds, medLogs, sugarLogs, bpLogs] = await Promise.all([
-        medicineService.getAllMedicines(),
-        medicineService.getRecentLogs(100),
-        bloodSugarService.getAllLogs(),
-        bloodPressureService.getAllLogs(),
-      ]);
+      let allMeds: MedicineWithSchedules[] = [];
+      let medLogs: any[] = [];
+      let sugarLogs: BloodSugarLog[] = [];
+      let bpLogs: BloodPressureLog[] = [];
+
+      // Query only what is needed for the active filter to maximize performance
+      if (filter === 'all' || filter === 'medicines') {
+        allMeds = await medicineService.getAllMedicines();
+        medLogs = await medicineService.getRecentLogs(100);
+      }
+      if (filter === 'all' || filter === 'sugar') {
+        sugarLogs = await bloodSugarService.getAllLogs();
+      }
+      if (filter === 'all' || filter === 'bp') {
+        bpLogs = await bloodPressureService.getAllLogs();
+      }
 
       const medMap = new Map<string, MedicineWithSchedules>();
       allMeds.forEach((m) => medMap.set(m.id, m));
@@ -177,8 +189,8 @@ export default function HistoryScreen() {
         });
       });
 
-      // Sort newest first
-      unified.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      // Fast ISO 8601 string sort (lexicographical, avoids expensive new Date() comparator)
+      unified.sort((a, b) => (b.timestamp > a.timestamp ? 1 : b.timestamp < a.timestamp ? -1 : 0));
 
       setItems(unified);
     } catch (err) {
@@ -188,11 +200,13 @@ export default function HistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isDatabaseReady]);
+  }, [isDatabaseReady, filter]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isFocused]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
