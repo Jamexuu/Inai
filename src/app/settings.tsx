@@ -12,6 +12,8 @@ import { useAppStore } from '@/store/app.store';
 import { AppThemeMode } from '@/services/settings.service';
 import { notificationProvider } from '@/notifications';
 import { SectionHeader, PrimaryButton, ScalePressable } from '@/components/ui';
+import { UserNameModal } from '@/components/user-name-modal';
+import { userProfileService } from '@/services/user-profile.service';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
@@ -19,9 +21,12 @@ export default function SettingsScreen() {
   const colors = useTheme();
   const themeMode = useAppStore((state) => state.themeMode);
   const setThemeMode = useAppStore((state) => state.setThemeMode);
+  const userName = useAppStore((state) => state.userName);
+  const setUserName = useAppStore((state) => state.setUserName);
 
   const [notificationStatus, setNotificationStatus] = useState<string>('Checking...');
   const [exactAlarmsAllowed, setExactAlarmsAllowed] = useState<boolean>(true);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
 
   useEffect(() => {
     async function checkPerms() {
@@ -67,8 +72,8 @@ export default function SettingsScreen() {
   }[] = [
     {
       key: 'light',
-      title: 'Light Mode',
-      description: 'Warm linen and soft ivory, ideal for everyday daytime reading.',
+      title: 'Light Mode (Default)',
+      description: 'Warm linen and soft ivory, ideal for comfortable daytime reading.',
       icon: 'sunny-outline',
     },
     {
@@ -77,17 +82,11 @@ export default function SettingsScreen() {
       description: 'Deep warm slate, comfortable and easy on the eyes in low light.',
       icon: 'moon-outline',
     },
-    {
-      key: 'system',
-      title: 'Follow System',
-      description: 'Automatically match your phone’s system light or dark setting.',
-      icon: 'phone-portrait-outline',
-    },
   ];
 
   return (
     <SafeAreaView
-      edges={['top', 'left', 'right']}
+      edges={['top', 'left', 'right', 'bottom']}
       style={{ backgroundColor: colors.background }}
       className="flex-1 bg-canvas dark:bg-canvas-dark">
       <ScrollView contentContainerClassName="px-4 pb-12">
@@ -106,8 +105,42 @@ export default function SettingsScreen() {
               Settings
             </Text>
             <Text className="text-sm font-semibold text-umber dark:text-umber-dark">
-              Display theme and routine preferences for Mom.
+              Display theme and personal preferences.
             </Text>
+          </View>
+        </View>
+
+        {/* Personal Profile Section */}
+        <SectionHeader
+          title="Personal Profile"
+          subtitle="What Inai calls you in greetings and reports"
+        />
+
+        <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 gap-3 mb-4">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-3 flex-1 pr-2">
+              <View className="w-11 h-11 rounded-xl bg-sage-tint dark:bg-sage-dark-tint border border-sage/20 items-center justify-center">
+                <Ionicons name="person" size={22} color={colors.primary} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
+                  {userName}
+                </Text>
+                <Text className="text-xs font-semibold text-umber dark:text-umber-dark">
+                  Inai calls you: "{userName}"
+                </Text>
+              </View>
+            </View>
+
+            <ScalePressable
+              onPress={() => setIsNameModalOpen(true)}
+              scaleTo={0.92}
+              className="min-h-[44px] px-3.5 flex-row items-center gap-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark active:bg-card-selected"
+              accessibilityRole="button"
+              accessibilityLabel={`Change name, currently ${userName}`}>
+              <Ionicons name="pencil" size={16} color={colors.primary} />
+              <Text className="text-xs font-bold text-sage dark:text-sage-dark">Change</Text>
+            </ScalePressable>
           </View>
         </View>
 
@@ -285,13 +318,26 @@ export default function SettingsScreen() {
             Inai
           </Text>
           <Text className="text-xs font-medium text-umber dark:text-umber-dark text-center">
-            A digital helper that gently takes care of Mom's daily routine.
+            A digital helper that gently takes care of your daily routine.
           </Text>
           <Text className="text-xs font-semibold text-umber dark:text-umber-dark mt-1">
             Version 1.0.0 · Offline SQLite Database
           </Text>
         </View>
       </ScrollView>
+
+      {/* Edit Name Modal */}
+      <UserNameModal
+        visible={isNameModalOpen}
+        initialName={userName}
+        canDismiss={true}
+        onSave={async (newName) => {
+          await userProfileService.saveUserName(newName);
+          setUserName(newName);
+          setIsNameModalOpen(false);
+        }}
+        onClose={() => setIsNameModalOpen(false)}
+      />
     </SafeAreaView>
   );
 }

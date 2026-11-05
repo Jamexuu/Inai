@@ -38,6 +38,7 @@ export default function HomeScreen() {
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
+  const userName = useAppStore((state) => state.userName);
 
   const [doses, setDoses] = useState<TodayMedicineDose[]>([]);
   const [daySugarLogs, setDaySugarLogs] = useState<BloodSugarLog[]>([]);
@@ -171,7 +172,11 @@ export default function HomeScreen() {
   // Greeting & Date formatting
   const currentHour = new Date().getHours();
   const greeting =
-    currentHour < 12 ? 'Good morning, Mom' : currentHour < 18 ? 'Good afternoon, Mom' : 'Good evening, Mom';
+    currentHour < 12
+      ? `Good morning, ${userName}`
+      : currentHour < 18
+      ? `Good afternoon, ${userName}`
+      : `Good evening, ${userName}`;
 
   const formattedHeaderDate = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
@@ -308,7 +313,7 @@ export default function HomeScreen() {
                     All medicines completed!
                   </Text>
                   <Text className="text-sm font-medium leading-5 text-umber dark:text-umber-dark">
-                    Wonderful job today, Mom. Rest easy and stay hydrated.
+                    Wonderful job today, {userName}. Rest easy and stay hydrated.
                   </Text>
                 </View>
               </View>
