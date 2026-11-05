@@ -1,6 +1,6 @@
 import { getDatabase } from '@/database/database';
 
-export type AppThemeMode = 'light' | 'dark' | 'system';
+export type AppThemeMode = 'light' | 'dark';
 
 export class SettingsService {
   async getSetting(key: string): Promise<string | null> {
@@ -35,10 +35,10 @@ export class SettingsService {
 
   async getThemeMode(): Promise<AppThemeMode> {
     const val = await this.getSetting('theme_mode');
-    if (val === 'light' || val === 'dark' || val === 'system') {
-      return val;
+    if (val === 'dark') {
+      return 'dark';
     }
-    return 'light'; // Default to warm light linen mode for Mom!
+    return 'light'; // Light theme by default, do not inherit system settings
   }
 
   async setThemeMode(mode: AppThemeMode): Promise<void> {

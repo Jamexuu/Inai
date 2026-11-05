@@ -98,6 +98,16 @@ function SlidingTabBar({
     () => Dimensions.get('window').width
   );
 
+  // Check if active route should hide bottom tab bar (e.g. settings)
+  const currentRoute = state.routes[state.index];
+  const currentDescriptor = descriptors[currentRoute?.key];
+  const currentOptions = currentDescriptor?.options as
+    | { tabBarStyle?: { display?: string } }
+    | undefined;
+  const isTabBarHidden =
+    currentRoute?.name === 'settings' ||
+    currentOptions?.tabBarStyle?.display === 'none';
+
   const activeRouteKey = state.routes[state.index]?.key;
   const foundIndex = visibleRoutes.findIndex((r) => r.key === activeRouteKey);
   const lastActiveIndex = useRef(0);
@@ -119,6 +129,7 @@ function SlidingTabBar({
   const isFirstRender = useRef(true);
 
   useEffect(() => {
+    if (isTabBarHidden) return;
     const targetX = activeVisibleIndex * tabWidth;
     if (isFirstRender.current) {
       translateX.setValue(targetX);
@@ -132,7 +143,12 @@ function SlidingTabBar({
         useNativeDriver: true,
       }).start();
     }
-  }, [activeVisibleIndex, tabWidth, translateX]);
+  }, [activeVisibleIndex, tabWidth, translateX, isTabBarHidden]);
+
+  // Return null AFTER all hooks have executed unconditionally
+  if (isTabBarHidden) {
+    return null;
+  }
 
   return (
     <View
@@ -301,6 +317,7 @@ export default function AppTabs() {
         options={{
           href: null,
           title: 'Settings',
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Tabs>
