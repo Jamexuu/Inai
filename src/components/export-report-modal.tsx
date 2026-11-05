@@ -14,26 +14,31 @@ import { PrimaryButton } from './ui/primary-button';
 import { ConfirmationDialog } from './ui/confirmation-dialog';
 import { ScalePressable } from './ui/scale-pressable';
 import { useTheme } from '@/hooks/use-theme';
+import { useAppStore } from '@/store/app.store';
 
 interface ExportReportModalProps {
   visible: boolean;
   onClose: () => void;
   initialType?: ReportType;
+  recordName?: string;
 }
 
 export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   visible,
   onClose,
   initialType = 'all',
+  recordName,
 }) => {
   const colors = useTheme();
   const insets = useSafeAreaInsets();
+  const userName = useAppStore((state) => state.userName);
   const [selectedType, setSelectedType] = useState<ReportType>(initialType);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const reportOptions: Array<{
     type: ReportType;
+    recordName: string;
     title: string;
     description: string;
     icon: keyof typeof Ionicons.glyphMap;
@@ -41,6 +46,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
   }> = [
     {
       type: 'all',
+      recordName: 'health_records',
       title: 'Complete Health Report',
       description: 'Blood sugar, blood pressure, and medicine adherence in one unified PDF document.',
       icon: 'document-text',
@@ -48,6 +54,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
     },
     {
       type: 'sugar',
+      recordName: 'blood_sugar',
       title: 'Blood Sugar Report',
       description: 'Glucose levels, measurement contexts, and weekly/monthly trends for your doctor.',
       icon: 'water',
@@ -55,6 +62,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
     },
     {
       type: 'bp',
+      recordName: 'blood_pressure',
       title: 'Blood Pressure Report',
       description: 'Systolic, diastolic, and pulse readings with clinical categories and averages.',
       icon: 'heart',
@@ -62,6 +70,7 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
     },
     {
       type: 'medicines',
+      recordName: 'medicines',
       title: 'Medicine Intake Report',
       description: 'Complete log of taken, skipped, and scheduled prescription doses.',
       icon: 'medkit',
@@ -73,9 +82,14 @@ export const ExportReportModal: React.FC<ExportReportModalProps> = ({
     setIsExporting(true);
     setExportError(null);
     try {
+      const selectedOption = reportOptions.find((opt) => opt.type === selectedType);
+      const effectiveRecordName =
+        selectedType === initialType && recordName ? recordName : selectedOption?.recordName;
+
       await pdfExportService.exportReport({
         reportType: selectedType,
-        patientName: 'Mom',
+        recordName: effectiveRecordName,
+        patientName: userName || 'Mom',
       });
       onClose();
     } catch (err) {
