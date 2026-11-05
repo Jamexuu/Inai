@@ -3,6 +3,7 @@ import { BloodSugarLog, BloodSugarContext } from '@/types';
 
 export interface IBloodSugarRepository {
   getAll(): Promise<BloodSugarLog[]>;
+  getByDate?(datePrefix: string): Promise<BloodSugarLog[]>;
   getById(id: string): Promise<BloodSugarLog | null>;
   create(entry: Omit<BloodSugarLog, 'createdAt' | 'updatedAt'>): Promise<BloodSugarLog>;
   update(entry: BloodSugarLog): Promise<BloodSugarLog>;
@@ -21,6 +22,31 @@ export class BloodSugarRepository implements IBloodSugarRepository {
       created_at: string;
       updated_at: string;
     }>('SELECT * FROM blood_sugar_logs ORDER BY logged_at DESC;');
+
+    return rows.map((r) => ({
+      id: r.id,
+      level: r.level,
+      context: (r.context as BloodSugarContext) || 'random',
+      loggedAt: r.logged_at,
+      notes: r.notes ?? undefined,
+      createdAt: r.created_at,
+      updatedAt: r.updated_at,
+    }));
+  }
+
+  async getByDate(datePrefix: string): Promise<BloodSugarLog[]> {
+    const db = getDatabase();
+    const rows = await db.getAllAsync<{
+      id: string;
+      level: number;
+      context: string;
+      logged_at: string;
+      notes: string | null;
+      created_at: string;
+      updated_at: string;
+    }>('SELECT * FROM blood_sugar_logs WHERE logged_at LIKE ? ORDER BY logged_at ASC;', [
+      `${datePrefix}%`,
+    ]);
 
     return rows.map((r) => ({
       id: r.id,

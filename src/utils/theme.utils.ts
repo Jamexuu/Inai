@@ -5,19 +5,16 @@ import { colorScheme as nativewindColorScheme } from 'nativewind';
  * Synchronizes the app-level theme preference ('light' | 'dark' | 'system')
  * with NativeWind v4's CSS engine and React Native's Appearance API.
  */
-export function syncAppTheme(mode: 'light' | 'dark' | 'system') {
+export function syncAppTheme(mode: 'light' | 'dark' | string) {
+  const resolved = mode === 'dark' ? 'dark' : 'light';
   try {
-    nativewindColorScheme.set(mode);
+    nativewindColorScheme.set(resolved);
   } catch {
     // Ignore in unsupported environments
   }
 
   try {
-    if (mode === 'system') {
-      (Appearance as { setColorScheme?: (scheme: string | null) => void }).setColorScheme?.('unspecified');
-    } else {
-      Appearance.setColorScheme(mode);
-    }
+    Appearance.setColorScheme(resolved);
   } catch {
     // Ignore in unsupported environments
   }

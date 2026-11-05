@@ -9,6 +9,8 @@ interface AppState {
   isAddModalVisible: boolean;
   selectedMedicineId: string | null;
   themeMode: AppThemeMode;
+  userName: string;
+  hasProfile: boolean;
 
   // Actions
   setSelectedDate: (date: string) => void;
@@ -17,6 +19,8 @@ interface AppState {
   setAddModalVisible: (visible: boolean) => void;
   setSelectedMedicineId: (id: string | null) => void;
   setThemeMode: (mode: AppThemeMode) => void;
+  setUserName: (name: string) => void;
+  setHasProfile: (has: boolean) => void;
 }
 
 const getTodayDateStr = () => new Date().toISOString().substring(0, 10);
@@ -28,12 +32,16 @@ export const useAppStore = create<AppState>((set) => ({
   isAddModalVisible: false,
   selectedMedicineId: null,
   themeMode: 'light', // Default to warm light mode for Mom
+  userName: 'Mom',
+  hasProfile: false,
 
   setSelectedDate: (date: string) => set({ selectedDate: date }),
   setDatabaseReady: (ready: boolean) => set({ isDatabaseReady: ready }),
   triggerRefresh: () => set((state) => ({ refreshTrigger: state.refreshTrigger + 1 })),
   setAddModalVisible: (visible: boolean) => set({ isAddModalVisible: visible }),
   setSelectedMedicineId: (id: string | null) => set({ selectedMedicineId: id }),
+  setUserName: (name: string) => set({ userName: name, hasProfile: true }),
+  setHasProfile: (has: boolean) => set({ hasProfile: has }),
   setThemeMode: (mode: AppThemeMode) => {
     set({ themeMode: mode });
     syncAppTheme(mode);

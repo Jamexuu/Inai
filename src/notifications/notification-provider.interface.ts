@@ -23,6 +23,8 @@ export interface INotificationProvider {
   cancelMealReminder(mealId: string): Promise<void>;
   scheduleBPReminder(params: { id: string; label: string; reminderTime: string }): Promise<string>;
   cancelBPReminder(id: string): Promise<void>;
+  scheduleSugarReminder(params: { id: string; label: string; reminderTime: string }): Promise<string>;
+  cancelSugarReminder(id: string): Promise<void>;
   displayAlarmNow(medicineName?: string, dosage?: string): Promise<string>;
   displayReminderNow?(medicineName?: string, dosage?: string): Promise<string>;
   triggerTestAlarm(medicineName?: string, delaySeconds?: number): Promise<string>;

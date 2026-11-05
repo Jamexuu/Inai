@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS medicine_logs (
 CREATE INDEX IF NOT EXISTS idx_logs_med_id ON medicine_logs(medicine_id);
 CREATE INDEX IF NOT EXISTS idx_logs_scheduled_time ON medicine_logs(scheduled_time);
 CREATE INDEX IF NOT EXISTS idx_logs_logged_at ON medicine_logs(logged_at);
+CREATE INDEX IF NOT EXISTS idx_logs_med_sched ON medicine_logs(medicine_id, scheduled_time);
 
 -- Daily Meals
 CREATE TABLE IF NOT EXISTS meals (

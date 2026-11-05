@@ -54,53 +54,51 @@ export class MedicineService {
     }>;
   }): Promise<MedicineWithSchedules> {
     const medicineId = `med_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const db = getDatabase();
-    let medicine: Medicine;
     const createdSchedules: MedicineSchedule[] = [];
 
-    await db.withTransactionAsync(async () => {
-      medicine = await this.medicineRepo.create({
-        id: medicineId,
-        name: params.name.trim(),
-        dosage: params.dosage.trim(),
-        instructions: params.instructions?.trim() || undefined,
-        notes: params.notes?.trim() || undefined,
-        isActive: true,
-      });
-
-      for (const s of params.schedules) {
-        const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        const schedule = await this.scheduleRepo.create({
-          id: scheduleId,
-          medicineId,
-          timeSlot: s.timeSlot,
-          reminderTime: s.reminderTime,
-          daysOfWeek: s.daysOfWeek ?? 'ALL',
-          isActive: true,
-        });
-        createdSchedules.push(schedule);
-      }
+    const medicine = await this.medicineRepo.create({
+      id: medicineId,
+      name: params.name.trim(),
+      dosage: params.dosage.trim(),
+      instructions: params.instructions?.trim() || undefined,
+      notes: params.notes?.trim() || undefined,
+      isActive: true,
     });
 
-    // Schedule local notifications outside the DB transaction
-    for (const schedule of createdSchedules) {
-      try {
-        await this.notifier?.scheduleMedicineReminder({
-          medicineId,
-          scheduleId: schedule.id,
-          medicineName: medicine!.name,
-          dosage: medicine!.dosage,
-          instructions: medicine!.instructions,
-          timeSlot: schedule.timeSlot,
-          reminderTime: schedule.reminderTime,
-        });
-      } catch (err) {
-        console.warn('Failed to schedule reminder notification:', err);
-      }
+    for (const s of params.schedules) {
+      const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const schedule = await this.scheduleRepo.create({
+        id: scheduleId,
+        medicineId,
+        timeSlot: s.timeSlot,
+        reminderTime: s.reminderTime,
+        daysOfWeek: s.daysOfWeek ?? 'ALL',
+        isActive: true,
+      });
+      createdSchedules.push(schedule);
     }
 
+    // Schedule local notifications in background without blocking the UI
+    (async () => {
+      for (const schedule of createdSchedules) {
+        try {
+          await this.notifier?.scheduleMedicineReminder({
+            medicineId,
+            scheduleId: schedule.id,
+            medicineName: medicine.name,
+            dosage: medicine.dosage,
+            instructions: medicine.instructions,
+            timeSlot: schedule.timeSlot,
+            reminderTime: schedule.reminderTime,
+          });
+        } catch (err) {
+          console.warn('Failed to schedule reminder notification:', err);
+        }
+      }
+    })().catch((err) => console.warn('Background notification scheduling error:', err));
+
     return {
-      ...medicine!,
+      ...medicine,
       schedules: createdSchedules,
     };
   }
@@ -151,72 +149,66 @@ export class MedicineService {
       daysOfWeek?: string;
     }>
   ): Promise<Medicine> {
-    const db = getDatabase();
-    let updated: Medicine;
+    const updated = await this.medicineRepo.update(medicine);
     const createdSchedules: MedicineSchedule[] = [];
 
-    await db.withTransactionAsync(async () => {
-      updated = await this.medicineRepo.update(medicine);
-
-      if (newSchedules && newSchedules.length > 0) {
-        await this.scheduleRepo.deleteByMedicineId(medicine.id);
-
-        for (const s of newSchedules) {
-          const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-          const schedule = await this.scheduleRepo.create({
-            id: scheduleId,
-            medicineId: medicine.id,
-            timeSlot: s.timeSlot,
-            reminderTime: s.reminderTime,
-            daysOfWeek: s.daysOfWeek ?? 'ALL',
-            isActive: true,
-          });
-          createdSchedules.push(schedule);
-        }
-      }
-    });
-
     if (newSchedules && newSchedules.length > 0) {
-      // Cancel previous notifications
-      try {
-        await this.notifier?.cancelAllMedicineReminders(medicine.id);
-      } catch (err) {
-        console.warn('Failed to cancel notifications for updated medicine:', err);
+      await this.scheduleRepo.deleteByMedicineId(medicine.id);
+
+      for (const s of newSchedules) {
+        const scheduleId = `sch_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const schedule = await this.scheduleRepo.create({
+          id: scheduleId,
+          medicineId: medicine.id,
+          timeSlot: s.timeSlot,
+          reminderTime: s.reminderTime,
+          daysOfWeek: s.daysOfWeek ?? 'ALL',
+          isActive: true,
+        });
+        createdSchedules.push(schedule);
       }
-      // Reschedule notifications outside the DB transaction
-      for (const schedule of createdSchedules) {
+
+      // Reschedule notifications in background
+      (async () => {
         try {
-          await this.notifier?.scheduleMedicineReminder({
-            medicineId: medicine.id,
-            scheduleId: schedule.id,
-            medicineName: medicine.name,
-            dosage: medicine.dosage,
-            instructions: medicine.instructions,
-            timeSlot: schedule.timeSlot,
-            reminderTime: schedule.reminderTime,
-          });
+          await this.notifier?.cancelAllMedicineReminders(medicine.id);
         } catch (err) {
-          console.warn('Failed to reschedule reminder notification:', err);
+          console.warn('Failed to cancel notifications for updated medicine:', err);
         }
-      }
+        for (const schedule of createdSchedules) {
+          try {
+            await this.notifier?.scheduleMedicineReminder({
+              medicineId: medicine.id,
+              scheduleId: schedule.id,
+              medicineName: medicine.name,
+              dosage: medicine.dosage,
+              instructions: medicine.instructions,
+              timeSlot: schedule.timeSlot,
+              reminderTime: schedule.reminderTime,
+            });
+          } catch (err) {
+            console.warn('Failed to reschedule reminder notification:', err);
+          }
+        }
+      })().catch((err) => console.warn('Background notification reschedule error:', err));
     }
 
-    return updated!;
+    return updated;
   }
 
   async deleteMedicine(medicineId: string): Promise<void> {
-    // 1. Cancel notifications
-    try {
-      await this.notifier?.cancelAllMedicineReminders(medicineId);
-    } catch (err) {
-      console.warn('Failed to cancel notifications for deleted medicine:', err);
-    }
-    // 2. Delete schedules & medicine from SQLite inside transaction
-    const db = getDatabase();
-    await db.withTransactionAsync(async () => {
-      await this.scheduleRepo.deleteByMedicineId(medicineId);
-      await this.medicineRepo.delete(medicineId);
-    });
+    // Delete schedules & medicine from SQLite sequentially
+    await this.scheduleRepo.deleteByMedicineId(medicineId);
+    await this.medicineRepo.delete(medicineId);
+
+    // Cancel notifications in background
+    (async () => {
+      try {
+        await this.notifier?.cancelAllMedicineReminders(medicineId);
+      } catch (err) {
+        console.warn('Failed to cancel notifications for deleted medicine:', err);
+      }
+    })().catch((err) => console.warn('Background notification cancel error:', err));
   }
 
   async markDose(params: {

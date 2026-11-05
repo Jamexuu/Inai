@@ -7,7 +7,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '@/store/app.store';
 import { medicineService } from '@/services/medicine.service';
@@ -38,6 +38,7 @@ export default function HomeScreen() {
   const isDatabaseReady = useAppStore((state) => state.isDatabaseReady);
   const refreshTrigger = useAppStore((state) => state.refreshTrigger);
   const triggerRefresh = useAppStore((state) => state.triggerRefresh);
+  const userName = useAppStore((state) => state.userName);
 
   const [doses, setDoses] = useState<TodayMedicineDose[]>([]);
   const [daySugarLogs, setDaySugarLogs] = useState<BloodSugarLog[]>([]);
@@ -69,14 +70,8 @@ export default function HomeScreen() {
     if (!isDatabaseReady) return;
     setError(null);
     try {
-      const [dayDoses, allSugar] = await Promise.all([
-        medicineService.getTodayDoses(todayYMD),
-        bloodSugarService.getAllLogs(),
-      ]);
-
-      const daySugar = allSugar.filter(
-        (l) => l.loggedAt.substring(0, 10) === todayYMD
-      );
+      const dayDoses = await medicineService.getTodayDoses(todayYMD);
+      const daySugar = await bloodSugarService.getTodayLogs(todayYMD);
 
       setDoses(dayDoses);
       setDaySugarLogs(daySugar);
@@ -89,9 +84,13 @@ export default function HomeScreen() {
     }
   }, [isDatabaseReady, todayYMD]);
 
+  const isFocused = useIsFocused();
+
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger, isDatabaseReady]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isDatabaseReady, isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -171,7 +170,11 @@ export default function HomeScreen() {
   // Greeting & Date formatting
   const currentHour = new Date().getHours();
   const greeting =
-    currentHour < 12 ? 'Good morning, Mom' : currentHour < 18 ? 'Good afternoon, Mom' : 'Good evening, Mom';
+    currentHour < 12
+      ? `Good morning, ${userName}`
+      : currentHour < 18
+      ? `Good afternoon, ${userName}`
+      : `Good evening, ${userName}`;
 
   const formattedHeaderDate = new Date().toLocaleDateString(undefined, {
     weekday: 'long',
@@ -308,7 +311,7 @@ export default function HomeScreen() {
                     All medicines completed!
                   </Text>
                   <Text className="text-sm font-medium leading-5 text-umber dark:text-umber-dark">
-                    Wonderful job today, Mom. Rest easy and stay hydrated.
+                    Wonderful job today, {userName}. Rest easy and stay hydrated.
                   </Text>
                 </View>
               </View>

@@ -252,7 +252,6 @@ export const AddMedicineModal: React.FC<AddMedicineModalProps> = ({
         });
       }
 
-      triggerRefresh();
       onSuccess();
       onClose();
     } catch (e) {

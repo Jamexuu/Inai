@@ -5,6 +5,11 @@ declare global {
 }
 
 export function seedInitialDataIfEmpty(): Promise<void> {
+  // Never seed sample mock data in standalone/production builds
+  if (!__DEV__) {
+    return Promise.resolve();
+  }
+
   if (globalThis.__inai_seed_promise__) {
     return globalThis.__inai_seed_promise__;
   }

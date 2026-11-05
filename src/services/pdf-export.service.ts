@@ -1,5 +1,6 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { BloodSugarLog, BloodPressureLog, MedicineWithSchedules, MedicineLog } from '@/types';
 import { getSugarCategory, getSugarCategoryStyle, getSugarContextLabel } from '@/utils/sugar.utils';
@@ -15,18 +16,74 @@ export interface GeneratePdfOptions {
   reportType: ReportType;
   patientName?: string;
   notes?: string;
+  recordName?: string;
+  timestamp?: number | string;
+  fileName?: string;
+}
+
+/**
+ * Formats a record name string to a clean, lowercase snake_case format suitable for filenames.
+ */
+export function formatRecordName(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+/**
+ * Returns the default record name based on report type.
+ */
+export function getDefaultRecordName(reportType: ReportType): string {
+  switch (reportType) {
+    case 'sugar':
+      return 'blood_sugar';
+    case 'bp':
+      return 'blood_pressure';
+    case 'medicines':
+      return 'medicines';
+    case 'all':
+    default:
+      return 'health_records';
+  }
+}
+
+/**
+ * Generates the export PDF filename following the convention:
+ * timestamp_{record_name}.pdf
+ */
+export function getExportFileName(options: GeneratePdfOptions): string {
+  if (options.fileName) {
+    return options.fileName.endsWith('.pdf') ? options.fileName : `${options.fileName}.pdf`;
+  }
+  const timestamp = options.timestamp ?? Date.now();
+  const rawRecordName = options.recordName || getDefaultRecordName(options.reportType);
+  const cleanRecordName = formatRecordName(rawRecordName);
+  return `${timestamp}_${cleanRecordName}.pdf`;
 }
 
 export class PdfExportService {
   /**
+   * Generates the export PDF filename following the convention:
+   * timestamp_{record_name}.pdf
+   */
+  getExportFileName(options: GeneratePdfOptions): string {
+    return getExportFileName(options);
+  }
+
+  /**
    * Generates a PDF file from health records and opens the native share/save sheet or print dialog.
+   * Exports with the naming convention: timestamp_{record_name}.pdf
    */
   async exportReport(options: GeneratePdfOptions): Promise<string | null> {
-    const html = await this.buildReportHtml(options);
+    const fileName = this.getExportFileName(options);
+    const html = await this.buildReportHtml(options, fileName);
 
     try {
       if (Platform.OS === 'web') {
-        // On web, Print.printAsync triggers browser print / save-as-pdf dialog
+        // On web, Print.printAsync triggers browser print / save-as-pdf dialog.
+        // The HTML <title> tag dictates the default PDF file name when saved by the browser.
         await Print.printAsync({ html });
         return null;
       }
@@ -37,16 +94,30 @@ export class PdfExportService {
         base64: false,
       });
 
+      let fileUri = uri;
+      try {
+        if (FileSystem.cacheDirectory) {
+          const targetUri = `${FileSystem.cacheDirectory}${fileName}`;
+          await FileSystem.copyAsync({
+            from: uri,
+            to: targetUri,
+          });
+          fileUri = targetUri;
+        }
+      } catch (copyErr) {
+        console.warn('Could not copy PDF file to target filename, using original URI:', copyErr);
+      }
+
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
-        await Sharing.shareAsync(uri, {
+        await Sharing.shareAsync(fileUri, {
           UTI: '.pdf',
           mimeType: 'application/pdf',
           dialogTitle: 'Share or Save Health Report PDF',
         });
       }
 
-      return uri;
+      return fileUri;
     } catch (err) {
       console.error('Failed to export PDF report:', err);
       throw err;
@@ -57,14 +128,15 @@ export class PdfExportService {
    * Direct print option for home printers or network printers
    */
   async printReport(options: GeneratePdfOptions): Promise<void> {
-    const html = await this.buildReportHtml(options);
+    const fileName = this.getExportFileName(options);
+    const html = await this.buildReportHtml(options, fileName);
     await Print.printAsync({ html });
   }
 
   /**
    * Builds the complete, printer-friendly HTML string.
    */
-  private async buildReportHtml(options: GeneratePdfOptions): Promise<string> {
+  private async buildReportHtml(options: GeneratePdfOptions, fileName?: string): Promise<string> {
     const { reportType, patientName = 'Mom' } = options;
 
     const [allSugar, allBP, allMeds, medLogs] = await Promise.all([
@@ -293,12 +365,14 @@ export class PdfExportService {
       `;
     }
 
+    const documentTitle = fileName ? fileName.replace(/\.pdf$/i, '') : reportTitle;
+
     return `
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>${reportTitle}</title>
+          <title>${documentTitle}</title>
           <style>
             @page {
               size: A4;

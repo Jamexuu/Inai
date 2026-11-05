@@ -3,19 +3,53 @@ import {
   BloodSugarRepository,
 } from '@/repositories';
 import { BloodSugarLog, BloodSugarContext } from '@/types';
+import { getDatabase } from '@/database/database';
+import { notificationProvider, INotificationProvider } from '@/notifications';
 
 export interface SugarAverageResult {
   average: number | null;
   count: number;
 }
 
+export interface SugarReminderConfig {
+  id: string;
+  label: string;
+  reminderTime: string;
+  enabled: boolean;
+}
+
+const DEFAULT_SUGAR_REMINDERS: SugarReminderConfig[] = [
+  {
+    id: 'fasting',
+    label: 'Morning Fasting Check',
+    reminderTime: '07:30',
+    enabled: true,
+  },
+  {
+    id: 'post_dinner',
+    label: 'Post-Dinner Glucose Check',
+    reminderTime: '20:00',
+    enabled: true,
+  },
+];
+
 export class BloodSugarService {
   constructor(
-    private readonly sugarRepo: IBloodSugarRepository = new BloodSugarRepository()
+    private readonly sugarRepo: IBloodSugarRepository = new BloodSugarRepository(),
+    private readonly notifier: INotificationProvider = notificationProvider
   ) {}
 
   async getAllLogs(): Promise<BloodSugarLog[]> {
     return this.sugarRepo.getAll();
+  }
+
+  async getTodayLogs(datePrefix?: string): Promise<BloodSugarLog[]> {
+    const prefix = datePrefix || new Date().toISOString().substring(0, 10);
+    if (this.sugarRepo.getByDate) {
+      return this.sugarRepo.getByDate(prefix);
+    }
+    const all = await this.sugarRepo.getAll();
+    return all.filter((l) => l.loggedAt.startsWith(prefix));
   }
 
   async getLatestLog(): Promise<BloodSugarLog | null> {
@@ -133,6 +167,133 @@ export class BloodSugarService {
       average: Math.round(total / todayLogs.length),
       count: todayLogs.length,
     };
+  }
+
+  // ----------------------------------------------------
+  // Sugar Reminders & Alarms
+  // ----------------------------------------------------
+
+  async getSugarReminders(): Promise<SugarReminderConfig[]> {
+    try {
+      const db = getDatabase();
+      const rows = await db.getAllAsync<{
+        entity_id: string;
+        trigger_time: string;
+        title: string;
+        status: string;
+      }>(
+        "SELECT entity_id, trigger_time, title, status FROM reminders WHERE entity_type = 'sugar_reminder' ORDER BY trigger_time ASC;"
+      );
+
+      if (rows.length === 0) {
+        for (const def of DEFAULT_SUGAR_REMINDERS) {
+          await this.saveSugarReminder(def.id, def.reminderTime, def.enabled, def.label);
+        }
+        return DEFAULT_SUGAR_REMINDERS;
+      }
+
+      return rows.map((r) => ({
+        id: r.entity_id,
+        label: r.title,
+        reminderTime: r.trigger_time,
+        enabled: r.status === 'active',
+      }));
+    } catch (e) {
+      console.warn('Error fetching Sugar reminders from db:', e);
+      return DEFAULT_SUGAR_REMINDERS;
+    }
+  }
+
+  async saveSugarReminder(
+    id: string,
+    reminderTime: string,
+    enabled: boolean,
+    label?: string
+  ): Promise<void> {
+    const db = getDatabase();
+    const now = new Date().toISOString();
+    const title = label || (id === 'fasting' ? 'Morning Fasting Check' : id === 'post_dinner' ? 'Post-Dinner Glucose Check' : 'Blood Sugar Check');
+    const status = enabled ? 'active' : 'disabled';
+    const reminderId = `sugar_reminder_${id}`;
+
+    await db.runAsync(
+      `INSERT INTO reminders (id, entity_type, entity_id, notification_id, trigger_time, title, body, status, created_at, updated_at)
+       VALUES (?, 'sugar_reminder', ?, ?, ?, ?, 'Time to check and record your blood sugar.', ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         trigger_time = excluded.trigger_time,
+         title = excluded.title,
+         status = excluded.status,
+         updated_at = excluded.updated_at;`,
+      [
+        reminderId,
+        id,
+        `sugar_check_${id}`,
+        reminderTime,
+        title,
+        status,
+        now,
+        now,
+      ]
+    );
+
+    if (enabled) {
+      try {
+        await this.notifier.scheduleSugarReminder({
+          id,
+          label: title,
+          reminderTime,
+        });
+      } catch (err) {
+        console.warn(`Failed to schedule Sugar reminder for ${id}:`, err);
+      }
+    } else {
+      try {
+        await this.notifier.cancelSugarReminder(id);
+      } catch (err) {
+        console.warn(`Failed to cancel Sugar reminder for ${id}:`, err);
+      }
+    }
+  }
+
+  async addSugarReminder(label: string, reminderTime: string): Promise<SugarReminderConfig> {
+    const id = `sugar_custom_${Date.now()}`;
+    await this.saveSugarReminder(id, reminderTime, true, label);
+    return {
+      id,
+      label,
+      reminderTime,
+      enabled: true,
+    };
+  }
+
+  async deleteSugarReminder(id: string): Promise<void> {
+    const db = getDatabase();
+    await db.runAsync(
+      "DELETE FROM reminders WHERE entity_type = 'sugar_reminder' AND entity_id = ?;",
+      [id]
+    );
+    try {
+      await this.notifier.cancelSugarReminder(id);
+    } catch (e) {
+      console.warn(`Failed to cancel Sugar reminder for ${id} on delete:`, e);
+    }
+  }
+
+  async syncAllSugarReminders(): Promise<void> {
+    const configs = await this.getSugarReminders();
+    for (const cfg of configs) {
+      if (cfg.enabled) {
+        try {
+          await this.notifier.scheduleSugarReminder({
+            id: cfg.id,
+            label: cfg.label,
+            reminderTime: cfg.reminderTime,
+          });
+        } catch (err) {
+          console.warn(`Failed to sync sugar reminder for ${cfg.id}:`, err);
+        }
+      }
+    }
   }
 }
 

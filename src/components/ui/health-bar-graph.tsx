@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Pressable,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BloodSugarLog, BloodPressureLog } from '@/types';
@@ -47,6 +48,10 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
 }) => {
   const colors = useTheme();
   const isDark = useColorScheme() === 'dark';
+  const { width: windowWidth } = useWindowDimensions();
+  const isXs = windowWidth < 350;
+  const isSm = windowWidth < 380;
+
   const [timeframe, setTimeframe] = useState<TimeFrame>('week');
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null);
 
@@ -87,11 +92,13 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
 
         if (todayLogs.length === 0) return [];
 
+        const condenseTime = todayLogs.length > 4 && isXs;
         return todayLogs.map((log) => {
           const d = new Date(log.loggedAt);
+          const fullTime = formatTo12Hour(d);
           return {
             id: log.id,
-            label: formatTo12Hour(d),
+            label: condenseTime ? fullTime.replace(/\s*[AP]M$/i, '') : fullTime,
             sublabel: log.context.replace('_', ' '),
             hasData: true,
             sugarLevel: log.level,
@@ -106,11 +113,13 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
 
         if (todayLogs.length === 0) return [];
 
+        const condenseTime = todayLogs.length > 4 && isXs;
         return todayLogs.map((log) => {
           const d = new Date(log.loggedAt);
+          const fullTime = formatTo12Hour(d);
           return {
             id: log.id,
-            label: formatTo12Hour(d),
+            label: condenseTime ? fullTime.replace(/\s*[AP]M$/i, '') : fullTime,
             sublabel: `${log.pulse ? log.pulse + ' bpm' : ''}`,
             hasData: true,
             systolic: log.systolic,
@@ -352,12 +361,12 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
     }
 
     return [];
-  }, [timeframe, isSugar, sugarLogs, bpLogs]);
+  }, [timeframe, isSugar, sugarLogs, bpLogs, isXs]);
 
   // --------------------------------------------------------------------------
   // 3. Chart Scale and Target Line Setup
   // --------------------------------------------------------------------------
-  const chartHeight = 160;
+  const chartHeight = isXs ? 135 : 160;
 
   // For Sugar: scale 50 to 220
   // For BP: scale 40 to 190
@@ -382,10 +391,13 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
       : null;
 
   return (
-    <View className="rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark p-4 my-2 gap-3.5">
+    <View
+      className={`rounded-2xl border-[1.5px] border-subtle-border dark:border-subtle-border-dark bg-card dark:bg-card-dark ${
+        isXs ? 'p-3 gap-2.5 my-1.5' : 'p-4 gap-3.5 my-2'
+      }`}>
       {/* Title & Legend */}
       <View className="flex-row items-center justify-between flex-wrap gap-2">
-        <View className="flex-row items-center gap-2">
+        <View className="flex-row items-center gap-2 flex-1 min-w-[130px]">
           <View className="w-8 h-8 rounded-lg bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark items-center justify-center">
             <Ionicons
               name={isSugar ? 'water' : 'pulse'}
@@ -393,7 +405,9 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
               color={isSugar ? colors.secondary : colors.primary}
             />
           </View>
-          <Text className="text-base font-bold text-charcoal dark:text-charcoal-dark">
+          <Text
+            numberOfLines={1}
+            className={`${isXs ? 'text-sm' : 'text-base'} font-bold text-charcoal dark:text-charcoal-dark`}>
             {title || (isSugar ? 'Blood Sugar Trends' : 'Blood Pressure Trends')}
           </Text>
         </View>
@@ -401,18 +415,24 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
         {/* Legend */}
         {isSugar ? (
           <View className="flex-row items-center gap-1.5">
-            <View className="w-3 h-3 rounded-sm bg-sage dark:bg-sage-dark" />
-            <Text className="text-xs font-bold text-umber dark:text-umber-dark">Glucose (mg/dL)</Text>
+            <View className="w-2.5 h-2.5 rounded-sm bg-sage dark:bg-sage-dark" />
+            <Text className="text-[11px] font-bold text-umber dark:text-umber-dark">
+              {isXs ? 'Glucose' : 'Glucose (mg/dL)'}
+            </Text>
           </View>
         ) : (
-          <View className="flex-row items-center gap-3">
+          <View className={`flex-row items-center ${isXs ? 'gap-2' : 'gap-3'}`}>
             <View className="flex-row items-center gap-1.5">
-              <View className="w-3 h-3 rounded-sm bg-sage dark:bg-sage-dark" />
-              <Text className="text-xs font-bold text-umber dark:text-umber-dark">Systolic</Text>
+              <View className="w-2.5 h-2.5 rounded-sm bg-sage dark:bg-sage-dark" />
+              <Text className="text-[11px] font-bold text-umber dark:text-umber-dark">
+                {isXs ? 'Sys' : 'Systolic'}
+              </Text>
             </View>
             <View className="flex-row items-center gap-1.5">
-              <View className="w-3 h-3 rounded-sm bg-terracotta dark:bg-terracotta-dark" />
-              <Text className="text-xs font-bold text-umber dark:text-umber-dark">Diastolic</Text>
+              <View className="w-2.5 h-2.5 rounded-sm bg-terracotta dark:bg-terracotta-dark" />
+              <Text className="text-[11px] font-bold text-umber dark:text-umber-dark">
+                {isXs ? 'Dia' : 'Diastolic'}
+              </Text>
             </View>
           </View>
         )}
@@ -421,35 +441,49 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
       {/* -------------------------------------------------------------------- */}
       {/* Average Calculation Cards (Weekly & Monthly)                         */}
       {/* -------------------------------------------------------------------- */}
-      <View className="flex-row gap-2.5">
+      <View className="flex-row gap-2">
         {/* Weekly Average Card */}
-        <View className="flex-1 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark p-3 gap-1">
+        <View
+          className={`flex-1 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark ${
+            isXs ? 'p-2.5 gap-0.5' : 'p-3 gap-1'
+          }`}>
           <View className="flex-row items-center justify-between">
-            <Text className="text-xs font-bold text-umber dark:text-umber-dark uppercase tracking-wider">
+            <Text className="text-[10px] sm:text-xs font-bold text-umber dark:text-umber-dark uppercase tracking-wider">
               This Week
             </Text>
-            <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+            <Ionicons name="calendar-outline" size={13} color={colors.textSecondary} />
           </View>
           {isSugar ? (
             sugarWeeklyAvg && sugarWeeklyAvg.average !== null ? (
               <>
                 <View className="flex-row items-baseline gap-1 mt-0.5">
-                  <Text className="text-2xl font-bold text-charcoal">
+                  <Text
+                    className={`font-bold text-charcoal dark:text-charcoal-dark ${
+                      isXs ? 'text-xl' : 'text-2xl'
+                    }`}>
                     {sugarWeeklyAvg.average}
                   </Text>
-                  <Text className="text-xs font-bold text-umber">mg/dL</Text>
+                  <Text className="text-[10px] sm:text-xs font-bold text-umber dark:text-umber-dark">
+                    mg/dL
+                  </Text>
                 </View>
                 {(() => {
                   const cat = getSugarCategory(sugarWeeklyAvg.average, 'random');
                   const style = getSugarCategoryStyle(cat);
                   return (
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                      <View className={`px-2 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
-                        <Text className={`text-[10px] font-bold ${style.textColor}`}>
+                    <View className="flex-row items-center gap-1 mt-0.5 flex-wrap">
+                      <View className={`px-1.5 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
+                        <Text
+                          numberOfLines={1}
+                          className={`font-bold ${style.textColor} ${isXs ? 'text-[9px]' : 'text-[10px]'}`}>
                           {style.label}
                         </Text>
                       </View>
-                      <Text className="text-[11px] font-semibold text-muted-gray">
+                      <Text
+                        numberOfLines={1}
+                        className={`font-semibold text-muted-gray dark:text-muted-gray-dark ${
+                          isXs ? 'text-[9px]' : 'text-[11px]'
+                        }`}>
                         ({sugarWeeklyAvg.count} logs)
                       </Text>
                     </View>
@@ -457,7 +491,7 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                 })()}
               </>
             ) : (
-              <Text className="text-sm font-semibold text-muted-gray mt-2">
+              <Text className="text-xs sm:text-sm font-semibold text-muted-gray dark:text-muted-gray-dark mt-2">
                 No logs this week
               </Text>
             )
@@ -465,22 +499,34 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
             bpWeeklyAvg && bpWeeklyAvg.avgSystolic !== null ? (
               <>
                 <View className="flex-row items-baseline gap-1 mt-0.5">
-                  <Text className="text-2xl font-bold text-charcoal">
+                  <Text
+                    numberOfLines={1}
+                    className={`font-bold text-charcoal dark:text-charcoal-dark ${
+                      isXs ? 'text-base' : isSm ? 'text-lg' : 'text-2xl'
+                    }`}>
                     {bpWeeklyAvg.avgSystolic}/{bpWeeklyAvg.avgDiastolic}
                   </Text>
-                  <Text className="text-xs font-bold text-umber">mmHg</Text>
+                  <Text className="text-[10px] sm:text-xs font-bold text-umber dark:text-umber-dark">
+                    mmHg
+                  </Text>
                 </View>
                 {(() => {
                   const cat = getBPCategory(bpWeeklyAvg.avgSystolic!, bpWeeklyAvg.avgDiastolic!);
                   const style = getBPCategoryStyle(cat);
                   return (
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                      <View className={`px-2 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
-                        <Text className={`text-[10px] font-bold ${style.textColor}`}>
+                    <View className="flex-row items-center gap-1 mt-0.5 flex-wrap">
+                      <View className={`px-1.5 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
+                        <Text
+                          numberOfLines={1}
+                          className={`font-bold ${style.textColor} ${isXs ? 'text-[9px]' : 'text-[10px]'}`}>
                           {style.label}
                         </Text>
                       </View>
-                      <Text className="text-[11px] font-semibold text-muted-gray">
+                      <Text
+                        numberOfLines={1}
+                        className={`font-semibold text-muted-gray dark:text-muted-gray-dark ${
+                          isXs ? 'text-[9px]' : 'text-[11px]'
+                        }`}>
                         ({bpWeeklyAvg.count} logs)
                       </Text>
                     </View>
@@ -488,7 +534,7 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                 })()}
               </>
             ) : (
-              <Text className="text-sm font-semibold text-muted-gray mt-2">
+              <Text className="text-xs sm:text-sm font-semibold text-muted-gray dark:text-muted-gray-dark mt-2">
                 No logs this week
               </Text>
             )
@@ -496,33 +542,47 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
         </View>
 
         {/* Monthly Average Card */}
-        <View className="flex-1 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark p-3 gap-1">
+        <View
+          className={`flex-1 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark ${
+            isXs ? 'p-2.5 gap-0.5' : 'p-3 gap-1'
+          }`}>
           <View className="flex-row items-center justify-between">
-            <Text className="text-xs font-bold text-umber dark:text-umber-dark uppercase tracking-wider">
+            <Text className="text-[10px] sm:text-xs font-bold text-umber dark:text-umber-dark uppercase tracking-wider">
               This Month
             </Text>
-            <Ionicons name="stats-chart-outline" size={14} color={colors.textSecondary} />
+            <Ionicons name="stats-chart-outline" size={13} color={colors.textSecondary} />
           </View>
           {isSugar ? (
             sugarMonthlyAvg && sugarMonthlyAvg.average !== null ? (
               <>
                 <View className="flex-row items-baseline gap-1 mt-0.5">
-                  <Text className="text-2xl font-bold text-charcoal dark:text-charcoal-dark">
+                  <Text
+                    className={`font-bold text-charcoal dark:text-charcoal-dark ${
+                      isXs ? 'text-xl' : 'text-2xl'
+                    }`}>
                     {sugarMonthlyAvg.average}
                   </Text>
-                  <Text className="text-xs font-bold text-umber dark:text-umber-dark">mg/dL</Text>
+                  <Text className="text-[10px] sm:text-xs font-bold text-umber dark:text-umber-dark">
+                    mg/dL
+                  </Text>
                 </View>
                 {(() => {
                   const cat = getSugarCategory(sugarMonthlyAvg.average, 'random');
                   const style = getSugarCategoryStyle(cat);
                   return (
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                      <View className={`px-2 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
-                        <Text className={`text-[10px] font-bold ${style.textColor}`}>
+                    <View className="flex-row items-center gap-1 mt-0.5 flex-wrap">
+                      <View className={`px-1.5 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
+                        <Text
+                          numberOfLines={1}
+                          className={`font-bold ${style.textColor} ${isXs ? 'text-[9px]' : 'text-[10px]'}`}>
                           {style.label}
                         </Text>
                       </View>
-                      <Text className="text-[11px] font-semibold text-muted-gray dark:text-muted-gray-dark">
+                      <Text
+                        numberOfLines={1}
+                        className={`font-semibold text-muted-gray dark:text-muted-gray-dark ${
+                          isXs ? 'text-[9px]' : 'text-[11px]'
+                        }`}>
                         ({sugarMonthlyAvg.count} logs)
                       </Text>
                     </View>
@@ -530,7 +590,7 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                 })()}
               </>
             ) : (
-              <Text className="text-sm font-semibold text-muted-gray dark:text-muted-gray-dark mt-2">
+              <Text className="text-xs sm:text-sm font-semibold text-muted-gray dark:text-muted-gray-dark mt-2">
                 No logs this month
               </Text>
             )
@@ -538,22 +598,34 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
             bpMonthlyAvg && bpMonthlyAvg.avgSystolic !== null ? (
               <>
                 <View className="flex-row items-baseline gap-1 mt-0.5">
-                  <Text className="text-2xl font-bold text-charcoal dark:text-charcoal-dark">
+                  <Text
+                    numberOfLines={1}
+                    className={`font-bold text-charcoal dark:text-charcoal-dark ${
+                      isXs ? 'text-base' : isSm ? 'text-lg' : 'text-2xl'
+                    }`}>
                     {bpMonthlyAvg.avgSystolic}/{bpMonthlyAvg.avgDiastolic}
                   </Text>
-                  <Text className="text-xs font-bold text-umber dark:text-umber-dark">mmHg</Text>
+                  <Text className="text-[10px] sm:text-xs font-bold text-umber dark:text-umber-dark">
+                    mmHg
+                  </Text>
                 </View>
                 {(() => {
                   const cat = getBPCategory(bpMonthlyAvg.avgSystolic!, bpMonthlyAvg.avgDiastolic!);
                   const style = getBPCategoryStyle(cat);
                   return (
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                      <View className={`px-2 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
-                        <Text className={`text-[10px] font-bold ${style.textColor}`}>
+                    <View className="flex-row items-center gap-1 mt-0.5 flex-wrap">
+                      <View className={`px-1.5 py-0.5 rounded-md border ${style.badgeBg} ${style.badgeBorder}`}>
+                        <Text
+                          numberOfLines={1}
+                          className={`font-bold ${style.textColor} ${isXs ? 'text-[9px]' : 'text-[10px]'}`}>
                           {style.label}
                         </Text>
                       </View>
-                      <Text className="text-[11px] font-semibold text-muted-gray dark:text-muted-gray-dark">
+                      <Text
+                        numberOfLines={1}
+                        className={`font-semibold text-muted-gray dark:text-muted-gray-dark ${
+                          isXs ? 'text-[9px]' : 'text-[11px]'
+                        }`}>
                         ({bpMonthlyAvg.count} logs)
                       </Text>
                     </View>
@@ -561,7 +633,7 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                 })()}
               </>
             ) : (
-              <Text className="text-sm font-semibold text-muted-gray dark:text-muted-gray-dark mt-2">
+              <Text className="text-xs sm:text-sm font-semibold text-muted-gray dark:text-muted-gray-dark mt-2">
                 No logs this month
               </Text>
             )
@@ -574,12 +646,13 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
       {/* -------------------------------------------------------------------- */}
       <View className="flex-row rounded-xl bg-surface dark:bg-surface-dark p-1 border border-subtle-border dark:border-subtle-border-dark">
         {[
-          { key: 'today', label: 'Today' },
-          { key: 'week', label: 'This Week' },
-          { key: 'month', label: 'This Month' },
-          { key: 'year', label: 'This Year' },
+          { key: 'today', label: 'Today', shortLabel: 'Today' },
+          { key: 'week', label: 'This Week', shortLabel: 'Week' },
+          { key: 'month', label: 'This Month', shortLabel: 'Month' },
+          { key: 'year', label: 'This Year', shortLabel: 'Year' },
         ].map((tab) => {
           const isSelected = timeframe === tab.key;
+          const displayLabel = isSm ? tab.shortLabel : tab.label;
           return (
             <ScalePressable
               key={tab.key}
@@ -590,14 +663,21 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
               scaleTo={0.92}
               accessibilityRole="button"
               accessibilityLabel={`View ${tab.label} graph`}
-              className={`flex-1 min-h-[44px] items-center justify-center rounded-lg transition-colors ${
+              className={`flex-1 ${
+                isXs ? 'min-h-[38px] py-1' : 'min-h-[44px]'
+              } items-center justify-center rounded-lg transition-colors ${
                 isSelected ? 'bg-sage dark:bg-sage-dark' : 'bg-transparent'
               }`}>
               <Text
-                className={`text-xs font-bold ${
-                  isSelected ? (isDark ? 'text-[#101F18]' : 'text-white') : 'text-charcoal dark:text-charcoal-dark'
+                numberOfLines={1}
+                className={`font-bold ${isXs ? 'text-[11px]' : 'text-xs'} ${
+                  isSelected
+                    ? isDark
+                      ? 'text-[#101F18]'
+                      : 'text-white'
+                    : 'text-charcoal dark:text-charcoal-dark'
                 }`}>
-                {tab.label}
+                {displayLabel}
               </Text>
             </ScalePressable>
           );
@@ -608,17 +688,23 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
       {/* Selected Data Point Detail Callout                                   */}
       {/* -------------------------------------------------------------------- */}
       {selectedPoint && selectedPoint.hasData ? (
-        <View className="p-3 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark flex-row items-center justify-between">
-          <View>
+        <View className="p-3 rounded-xl bg-surface dark:bg-surface-dark border border-subtle-border dark:border-subtle-border-dark flex-row items-center justify-between flex-wrap gap-2">
+          <View className="flex-1 min-w-[120px]">
             <Text className="text-xs font-bold text-umber dark:text-umber-dark">
               {selectedPoint.label} {selectedPoint.sublabel ? `· ${selectedPoint.sublabel}` : ''}
             </Text>
             {isSugar ? (
-              <Text className="text-lg font-bold text-charcoal dark:text-charcoal-dark">
+              <Text
+                className={`${
+                  isXs ? 'text-base' : 'text-lg'
+                } font-bold text-charcoal dark:text-charcoal-dark`}>
                 {selectedPoint.sugarLevel} mg/dL
               </Text>
             ) : (
-              <Text className="text-lg font-bold text-charcoal dark:text-charcoal-dark">
+              <Text
+                className={`${
+                  isXs ? 'text-base' : 'text-lg'
+                } font-bold text-charcoal dark:text-charcoal-dark`}>
                 {selectedPoint.systolic}/{selectedPoint.diastolic} mmHg
                 {selectedPoint.pulse ? ` · ${selectedPoint.pulse} bpm` : ''}
               </Text>
@@ -657,14 +743,14 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
       {/* Bar Chart Canvas Area                                                */}
       {/* -------------------------------------------------------------------- */}
       {dataPoints.length === 0 ? (
-        <View className="h-40 items-center justify-center p-4 rounded-xl bg-surface border border-dashed border-subtle-border gap-2">
-          <Ionicons name="analytics-outline" size={28} color="#8E867E" />
-          <Text className="text-sm font-bold text-charcoal text-center">
+        <View className="h-40 items-center justify-center p-4 rounded-xl bg-surface dark:bg-surface-dark border border-dashed border-subtle-border dark:border-subtle-border-dark gap-2">
+          <Ionicons name="analytics-outline" size={28} color={colors.textSecondary} />
+          <Text className="text-sm font-bold text-charcoal dark:text-charcoal-dark text-center">
             {timeframe === 'today'
               ? 'No readings recorded today yet'
               : 'No records found for this period'}
           </Text>
-          <Text className="text-xs font-medium text-umber text-center">
+          <Text className="text-xs font-medium text-umber dark:text-umber-dark text-center">
             Log a reading above to see the bar chart update.
           </Text>
         </View>
@@ -681,11 +767,14 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                 right: 0,
                 bottom: targetLineBottom,
                 borderBottomWidth: 1,
-                borderBottomColor: '#C5BFB7',
+                borderBottomColor: isDark ? '#4A443C' : '#C5BFB7',
                 borderStyle: 'dashed',
                 zIndex: 1,
               }}>
-              <Text className="text-[10px] font-semibold text-muted-gray -mt-4 pl-1">
+              <Text
+                className={`text-[9px] sm:text-[10px] font-semibold ${
+                  isDark ? 'text-muted-gray-dark' : 'text-muted-gray'
+                } -mt-4 pl-1`}>
                 {isSugar ? 'Target: <140 mg/dL' : 'Target: 120/80 mmHg'}
               </Text>
             </View>
@@ -693,16 +782,20 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
             {/* Baseline axis */}
             <View
               pointerEvents="none"
-              className="absolute left-0 right-0 bottom-0 border-b border-subtle-border z-0"
+              className="absolute left-0 right-0 bottom-0 border-b border-subtle-border dark:border-subtle-border-dark z-0"
             />
 
             {/* Bars Row */}
-            <View className="flex-row items-end justify-between h-full px-1 z-10">
+            <View className="flex-row items-end justify-between h-full px-0.5 z-10">
               {dataPoints.map((point, index) => {
                 const isSelected = selectedPointIndex === index;
 
                 if (isSugar) {
                   const barH = point.hasData ? calculateBarHeight(point.sugarLevel) : 4;
+                  const barW = Math.max(
+                    isXs ? 8 : 10,
+                    Math.min(isXs ? 20 : 28, Math.round((isXs ? 140 : 200) / dataPoints.length))
+                  );
                   return (
                     <Pressable
                       key={point.id}
@@ -713,15 +806,21 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                       <View
                         style={{
                           height: barH,
-                          width: Math.max(12, Math.min(28, 200 / dataPoints.length)),
+                          width: barW,
                         }}
                         className={`rounded-t-md transition-all ${
                           !point.hasData
-                            ? 'bg-[#DDD7CD]'
+                            ? isDark
+                              ? 'bg-[#3A3530]'
+                              : 'bg-[#DDD7CD]'
                             : isSelected
-                            ? 'bg-charcoal'
+                            ? isDark
+                              ? 'bg-[#FAF7F2]'
+                              : 'bg-charcoal'
                             : point.isToday
-                            ? 'bg-sage border-2 border-charcoal/30'
+                            ? isDark
+                              ? 'bg-sage border-2 border-white/40'
+                              : 'bg-sage border-2 border-charcoal/30'
                             : 'bg-sage'
                         }`}
                       />
@@ -731,7 +830,11 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                   // BP: Paired bars (Systolic & Diastolic)
                   const sysH = point.hasData ? calculateBarHeight(point.systolic) : 4;
                   const diaH = point.hasData ? calculateBarHeight(point.diastolic) : 4;
-                  const barW = Math.max(7, Math.min(14, 120 / dataPoints.length));
+                  const barW = Math.max(
+                    isXs ? 4 : 6,
+                    Math.min(isXs ? 10 : 14, Math.round((isXs ? 80 : 120) / dataPoints.length))
+                  );
+                  const pairGap = isXs || dataPoints.length > 7 ? 2 : 4;
 
                   return (
                     <Pressable
@@ -740,15 +843,19 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                       accessibilityRole="button"
                       accessibilityLabel={`${point.label}: ${point.systolic ?? '-'}/${point.diastolic ?? '-'} mmHg`}
                       className="flex-1 items-center justify-end h-full min-h-[44px]">
-                      <View className="flex-row items-end gap-1">
+                      <View className="flex-row items-end" style={{ gap: pairGap }}>
                         {/* Systolic Bar */}
                         <View
                           style={{ height: sysH, width: barW }}
                           className={`rounded-t-sm ${
                             !point.hasData
-                              ? 'bg-[#DDD7CD]'
+                              ? isDark
+                                ? 'bg-[#3A3530]'
+                                : 'bg-[#DDD7CD]'
                               : isSelected
-                              ? 'bg-charcoal'
+                              ? isDark
+                                ? 'bg-[#FAF7F2]'
+                                : 'bg-charcoal'
                               : 'bg-sage'
                           }`}
                         />
@@ -757,9 +864,13 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                           style={{ height: diaH, width: barW }}
                           className={`rounded-t-sm ${
                             !point.hasData
-                              ? 'bg-[#DDD7CD]'
+                              ? isDark
+                                ? 'bg-[#3A3530]'
+                                : 'bg-[#DDD7CD]'
                               : isSelected
-                              ? 'bg-charcoal/70'
+                              ? isDark
+                                ? 'bg-[#DDD7CD]'
+                                : 'bg-charcoal/70'
                               : 'bg-terracotta'
                           }`}
                         />
@@ -772,9 +883,11 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
           </View>
 
           {/* X-Axis Labels Row */}
-          <View className="flex-row justify-between pt-2 px-1">
+          <View className="flex-row justify-between pt-2 px-0.5">
             {dataPoints.map((point, index) => {
               const isSelected = selectedPointIndex === index;
+              const displayLabel =
+                timeframe === 'year' && isXs ? point.label.substring(0, 1) : point.label;
               return (
                 <Pressable
                   key={`label_${point.id}`}
@@ -782,19 +895,23 @@ export const HealthBarGraph: React.FC<HealthBarGraphProps> = ({
                   className="flex-1 items-center">
                   <Text
                     numberOfLines={1}
-                    className={`text-[11px] ${
+                    className={`${
+                      isXs || dataPoints.length > 7 ? 'text-[9px]' : 'text-[11px]'
+                    } ${
                       isSelected
-                        ? 'font-bold text-charcoal'
+                        ? 'font-bold text-charcoal dark:text-charcoal-dark'
                         : point.isToday
-                        ? 'font-bold text-sage underline'
-                        : 'font-semibold text-umber'
+                        ? 'font-bold text-sage dark:text-sage-dark underline'
+                        : 'font-semibold text-umber dark:text-umber-dark'
                     }`}>
-                    {point.label}
+                    {displayLabel}
                   </Text>
                   {point.sublabel && timeframe !== 'year' ? (
                     <Text
                       numberOfLines={1}
-                      className="text-[9px] font-medium text-muted-gray">
+                      className={`${
+                        isXs ? 'text-[8px]' : 'text-[9px]'
+                      } font-medium text-muted-gray dark:text-muted-gray-dark`}>
                       {point.sublabel}
                     </Text>
                   ) : null}

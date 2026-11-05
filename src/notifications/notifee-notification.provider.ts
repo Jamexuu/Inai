@@ -19,6 +19,9 @@ export const MEAL_CHANNEL_NAME = 'Meal Reminders';
 export const BP_CHANNEL_ID = 'inai_bp_reminders';
 export const BP_CHANNEL_NAME = 'Blood Pressure Reminders';
 
+export const SUGAR_CHANNEL_ID = 'inai_sugar_reminders';
+export const SUGAR_CHANNEL_NAME = 'Blood Sugar Reminders';
+
 // Compatibility alias
 export const ALARM_CHANNEL_ID = MEDICINE_CHANNEL_ID;
 export const ALARM_CHANNEL_NAME = MEDICINE_CHANNEL_NAME;
@@ -59,6 +62,18 @@ export class NotifeeNotificationProvider implements INotificationProvider {
         id: BP_CHANNEL_ID,
         name: BP_CHANNEL_NAME,
         description: 'Gentle reminders to check and record daily blood pressure',
+        importance: AndroidImportance.HIGH,
+        sound: 'default',
+        vibration: true,
+        vibrationPattern: [250, 250],
+        bypassDnd: false,
+      });
+
+      // 4. Blood Sugar Reminder Channel
+      await notifee.createChannel({
+        id: SUGAR_CHANNEL_ID,
+        name: SUGAR_CHANNEL_NAME,
+        description: 'Gentle prompts to test and record daily blood sugar levels',
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
@@ -397,6 +412,101 @@ export class NotifeeNotificationProvider implements INotificationProvider {
       await notifee.cancelTriggerNotification(notificationId);
     } catch (e) {
       console.warn(`Failed to cancel BP reminder ${notificationId}:`, e);
+    }
+  }
+
+  async scheduleSugarReminder(params: {
+    id: string;
+    label: string;
+    reminderTime: string;
+  }): Promise<string> {
+    await this.ensureChannels();
+
+    const canonicalTime = parseTo24Hour(params.reminderTime);
+    const [hourStr, minuteStr] = canonicalTime.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+
+    const now = new Date();
+    const triggerDate = new Date();
+    triggerDate.setHours(hour, minute, 0, 0);
+
+    if (triggerDate.getTime() <= now.getTime()) {
+      triggerDate.setDate(triggerDate.getDate() + 1);
+    }
+
+    const trigger: TimestampTrigger = {
+      type: TriggerType.TIMESTAMP,
+      timestamp: triggerDate.getTime(),
+      repeatFrequency: RepeatFrequency.DAILY,
+      alarmManager: {
+        type: AlarmType.SET_EXACT_AND_ALLOW_WHILE_IDLE,
+      },
+    };
+
+    const notificationId = `sugar_check_${params.id}`;
+
+    const notificationPayload = {
+      id: notificationId,
+      title: `Blood Sugar Reminder: ${params.label}`,
+      body: `Time to check and record your glucose level.`,
+      data: {
+        type: 'sugar',
+        slot: params.id,
+      },
+      android: {
+        channelId: SUGAR_CHANNEL_ID,
+        importance: AndroidImportance.HIGH,
+        category: AndroidCategory.REMINDER,
+        loopSound: false,
+        ongoing: false,
+        autoCancel: true,
+        pressAction: {
+          id: 'default',
+        },
+        actions: [
+          {
+            title: 'Log Blood Sugar',
+            pressAction: {
+              id: 'open_sugar_log',
+              launchActivity: 'default',
+            },
+          },
+          {
+            title: 'Remind in 10m',
+            pressAction: {
+              id: 'snooze_10',
+            },
+          },
+        ],
+      },
+      ios: {
+        sound: 'default',
+        critical: false,
+      },
+    };
+
+    try {
+      await notifee.createTriggerNotification(notificationPayload, trigger);
+    } catch (err) {
+      console.warn('Sugar reminder trigger failed, using standard trigger:', err);
+      await notifee.createTriggerNotification(notificationPayload, {
+        type: TriggerType.TIMESTAMP,
+        timestamp: triggerDate.getTime(),
+        repeatFrequency: RepeatFrequency.DAILY,
+      });
+    }
+
+    return notificationId;
+  }
+
+  async cancelSugarReminder(id: string): Promise<void> {
+    const notificationId = `sugar_check_${id}`;
+    try {
+      await notifee.cancelNotification(notificationId);
+      await notifee.cancelTriggerNotification(notificationId);
+    } catch (e) {
+      console.warn(`Failed to cancel Sugar reminder ${notificationId}:`, e);
     }
   }
 

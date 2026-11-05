@@ -7,7 +7,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useIsFocused } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AddEditMealModal } from '@/components/add-edit-meal-modal';
 import {
@@ -38,15 +38,15 @@ export default function MealsScreen() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
 
+  const isFocused = useIsFocused();
+
   const loadData = useCallback(async () => {
     if (!isDatabaseReady) return;
     setError(null);
     try {
       const todayPrefix = new Date().toISOString().substring(0, 10);
-      const [todayMeals, allMeals] = await Promise.all([
-        mealService.getTodayMeals(todayPrefix),
-        mealService.getAllMeals(),
-      ]);
+      const todayMeals = await mealService.getTodayMeals(todayPrefix);
+      const allMeals = await mealService.getAllMeals();
       setMeals(todayMeals);
       setAllMealEntities(allMeals);
     } catch (err) {
@@ -59,8 +59,10 @@ export default function MealsScreen() {
   }, [isDatabaseReady]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData, refreshTrigger, isDatabaseReady]);
+    if (isFocused) {
+      loadData();
+    }
+  }, [loadData, refreshTrigger, isDatabaseReady, isFocused]);
 
   const handleRefresh = () => {
     setRefreshing(true);
